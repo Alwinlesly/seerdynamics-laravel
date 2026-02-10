@@ -55,6 +55,28 @@ Route::middleware(['auth'])->group(function () {
         // Comment routes
         Route::post('/{id}/comments', [TaskController::class, 'addComment'])->name('tasks.comments.store');
     });
+    
+    // Customers Routes
+    Route::prefix('customers')->group(function () {
+        Route::get('/', [App\Http\Controllers\CustomerController::class, 'index'])->name('customers.index');
+        Route::post('/list', [App\Http\Controllers\CustomerController::class, 'getCustomers'])->name('customers.list');
+        Route::get('/export', [App\Http\Controllers\CustomerController::class, 'export'])->name('customers.export');
+        Route::get('/{id}/edit', [App\Http\Controllers\CustomerController::class, 'edit'])->name('customers.edit');
+        Route::get('/{id}', [App\Http\Controllers\CustomerController::class, 'show'])->name('customers.show');
+        Route::post('/store', [App\Http\Controllers\CustomerController::class, 'store'])->name('customers.store');
+        Route::put('/{id}', [App\Http\Controllers\CustomerController::class, 'update'])->name('customers.update');
+        Route::delete('/{id}', [App\Http\Controllers\CustomerController::class, 'destroy'])->name('customers.destroy');
+    });
+    
+    // Customer Users Routes
+    Route::prefix('users/client')->group(function () {
+        Route::get('/', [App\Http\Controllers\CustomerUserController::class, 'index'])->name('customer-users.index');
+        Route::post('/list', [App\Http\Controllers\CustomerUserController::class, 'getCustomerUsers'])->name('customer-users.list');
+        Route::post('/store', [App\Http\Controllers\CustomerUserController::class, 'store'])->name('customer-users.store');
+        Route::get('/{id}/edit', [App\Http\Controllers\CustomerUserController::class, 'edit'])->name('customer-users.edit');
+        Route::put('/{id}', [App\Http\Controllers\CustomerUserController::class, 'update'])->name('customer-users.update');
+        Route::delete('/{id}', [App\Http\Controllers\CustomerUserController::class, 'destroy'])->name('customer-users.destroy');
+    });
 });
 
 // Admin Only Routes (example)
