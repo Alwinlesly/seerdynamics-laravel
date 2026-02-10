@@ -1,0 +1,28 @@
+/* Minimal styles for new tickets view */
+body{font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:#1C274C}
+.top-header{display:flex;justify-content:space-between;align-items:center;padding:16px;background:#fff;border-bottom:1px solid #eee}
+.logo img{height:38px}
+.main{background:#f7f8fc;min-height:100vh}
+.pg-hd{font-size:24px;margin:0}
+.search-create{display:flex;gap:12px;align-items:center}
+.menu-sidebar--item{display:block;padding:8px 12px;color:#333;text-decoration:none}
+.sidebar{background:#fff;border-right:1px solid #eee;height:100vh;padding-top:20px}
+.right-section{background:transparent}
+.table-x .my-table th, .table-x .my-table td{vertical-align:middle}
+.status{padding:6px 8px;border-radius:6px;color:#fff;font-size:13px;font-weight:500;display:inline-block}
+.status.open{background:#0ea5e9}
+.status.in-progress,.status.on-going{background:#FFB020}
+.status.completed,.status.finished{background:#10B981}
+.status.closed{background:#6366f1}
+.status.archived{background:#6b7280}
+.status.cancelled,.status.canceled{background:#ef4444}
+.status.on-hold,.status.pending{background:#f59e0b}
+.low-pr{background:#60a5fa;color:#fff;padding:4px 8px;border-radius:4px}
+.med-pr{background:#f59e0b;color:#fff;padding:4px 8px;border-radius:4px}
+.high-pr{background:#ef4444;color:#fff;padding:4px 8px;border-radius:4px}
+.avatar{width:36px;height:36px;border-radius:50%;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.pagination{margin-top:12px}
+.footer{padding:20px;border-top:1px solid #eee;background:#fff;margin-top:30px}
+/* Responsive adjustments */
+@media (max-width:768px){.sidebar{position:fixed;left:-260px;top:0;z-index:1000;width:260px}.sidebar.active{left:0}}
