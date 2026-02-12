@@ -23,6 +23,12 @@ if (!function_exists('company_name')) {
     }
 }
 
+if (!function_exists('company_logo')) {
+    function company_logo() {
+        return get_setting('general', 'company_logo') ?? 'logo.png';
+    }
+}
+
 if (!function_exists('favicon')) {
     function favicon() {
         return get_setting('general', 'favicon') ?? 'favicon.ico';

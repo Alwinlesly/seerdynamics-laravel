@@ -77,6 +77,15 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/{id}', [App\Http\Controllers\CustomerUserController::class, 'update'])->name('customer-users.update');
         Route::delete('/{id}', [App\Http\Controllers\CustomerUserController::class, 'destroy'])->name('customer-users.destroy');
     });
+    
+    // Timesheet Routes
+    Route::prefix('timesheet')->group(function () {
+        Route::get('/', [App\Http\Controllers\TimesheetController::class, 'index'])->name('timesheets.index');
+        Route::get('/get', [App\Http\Controllers\TimesheetController::class, 'getTimesheets'])->name('timesheets.get');
+        Route::get('/create', [App\Http\Controllers\TimesheetController::class, 'create'])->name('timesheets.create');
+        Route::post('/store', [App\Http\Controllers\TimesheetController::class, 'store'])->name('timesheets.store');
+        Route::delete('/{id}', [App\Http\Controllers\TimesheetController::class, 'destroy'])->name('timesheets.destroy');
+    });
 });
 
 // Admin Only Routes (example)
