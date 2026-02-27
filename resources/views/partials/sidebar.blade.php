@@ -50,6 +50,14 @@
     </div>
     @endif
 
+    @if(auth()->user()->inGroup(1))
+    <div class="nav-item mb-3">
+        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('consultants.index') }}">
+            Consultants
+        </a>
+    </div>
+    @endif
+
     <div class="nav-item mb-3">
         <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('logout') }}">
             <span>

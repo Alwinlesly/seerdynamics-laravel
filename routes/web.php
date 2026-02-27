@@ -101,6 +101,17 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/print', [App\Http\Controllers\SupportStatementController::class, 'generatePrint'])->name('support-statement.print');
         Route::post('/projects', [App\Http\Controllers\SupportStatementController::class, 'getProjectsByCustomer'])->name('support-statement.projects');
     });
+    
+    // Consultants Routes
+    Route::prefix('consultants')->group(function () {
+        Route::get('/', [App\Http\Controllers\ConsultantController::class, 'index'])->name('consultants.index');
+        Route::post('/store', [App\Http\Controllers\ConsultantController::class, 'store'])->name('consultants.store');
+        Route::get('/{id}', [App\Http\Controllers\ConsultantController::class, 'getById'])->name('consultants.get');
+        Route::post('/update', [App\Http\Controllers\ConsultantController::class, 'update'])->name('consultants.update');
+        Route::delete('/{id}', [App\Http\Controllers\ConsultantController::class, 'destroy'])->name('consultants.destroy');
+        Route::post('/activate/{id}', [App\Http\Controllers\ConsultantController::class, 'activate'])->name('consultants.activate');
+        Route::post('/deactivate/{id}', [App\Http\Controllers\ConsultantController::class, 'deactivate'])->name('consultants.deactivate');
+    });
 });
 
 // Admin Only Routes (example)
