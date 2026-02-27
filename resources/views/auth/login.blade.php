@@ -61,7 +61,7 @@
       <h2>Welcome back</h2>
       <p class="subtitle">We are glad to see you again!</p>
 
-      <form id="login" method="POST" action="{{ route('login') }}">
+      <form id="login" method="POST" action="{{ route('login.submit') }}">
         @csrf
         <input id="identity" type="email" name="identity" placeholder="Email" required autofocus />
         <input id="password" type="password" name="password" placeholder="Password" required />

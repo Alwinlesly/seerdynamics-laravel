@@ -9,9 +9,10 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
 
 // Authentication Routes
-Route::get('/', [LoginController::class, 'index'])->name('login.form');
-Route::get('/auth', [LoginController::class, 'index']);
-Route::post('/auth/login', [LoginController::class, 'login'])->name('login');
+Route::get('/', [LoginController::class, 'index'])->name('login');
+Route::get('/auth', [LoginController::class, 'index'])->name('login.form');
+Route::get('/auth/login', [LoginController::class, 'index']);
+Route::post('/auth/login', [LoginController::class, 'login'])->name('login.submit');
 Route::get('/auth/logout', [LoginController::class, 'logout'])->name('logout');
 Route::post('/auth/forgot-password', [ForgotPasswordController::class, 'sendResetLink']);
 Route::get('/auth/reset-password/{code}', [ResetPasswordController::class, 'showResetForm']);
@@ -85,6 +86,12 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/create', [App\Http\Controllers\TimesheetController::class, 'create'])->name('timesheets.create');
         Route::post('/store', [App\Http\Controllers\TimesheetController::class, 'store'])->name('timesheets.store');
         Route::delete('/{id}', [App\Http\Controllers\TimesheetController::class, 'destroy'])->name('timesheets.destroy');
+        
+        // Timesheet Release Routes
+        Route::get('/release', [App\Http\Controllers\TimesheetReleaseController::class, 'index'])->name('timesheets.release');
+        Route::get('/release/data', [App\Http\Controllers\TimesheetReleaseController::class, 'getData'])->name('timesheets.release.data');
+        Route::post('/release/save', [App\Http\Controllers\TimesheetReleaseController::class, 'saveRelease'])->name('timesheets.release.save');
+        Route::post('/release/projects', [App\Http\Controllers\TimesheetReleaseController::class, 'getProjectsByCustomer'])->name('timesheets.release.projects');
     });
 });
 
