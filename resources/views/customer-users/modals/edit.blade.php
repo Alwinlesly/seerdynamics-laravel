@@ -113,13 +113,13 @@ $('#editCustomerUserForm').on('submit', function(e) {
             if (!response.error) {
                 $('#editCustomerUserModal').modal('hide');
                 loadCustomerUsers();
-                alert('Customer user updated successfully!');
+                showToast('success', 'Customer user updated successfully!');
             } else {
-                alert('Error updating customer user: ' + response.message);
+                showToast('error', 'Error updating customer user: ' + response.message);
             }
         },
         error: function(xhr) {
-            alert('Error updating customer user. Please check all fields.');
+            showToast('error', 'Error updating customer user. Please check all fields.');
         }
     });
 });

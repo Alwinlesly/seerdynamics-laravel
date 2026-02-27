@@ -294,7 +294,7 @@
         var toDate = $('#toDateFilter').val();
 
         if (!customer || !project || !fromDate || !toDate) {
-            alert('Please submit the form first to load data');
+            showToast('warning', 'Please submit the form first to load data');
             return;
         }
 
@@ -364,7 +364,7 @@
             },
             error: function(xhr) {
                 console.error('Error loading report:', xhr);
-                alert('Error loading report');
+                showToast('error', 'Error loading report');
             }
         });
     }

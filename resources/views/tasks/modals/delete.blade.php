@@ -33,14 +33,14 @@
                 if (!response.error) {
                     $('#deleteTaskModal').modal('hide');
                     loadTasks();
-                    alert('Task deleted successfully!');
+                    showToast('success', 'Task deleted successfully!');
                 } else {
-                    alert('Error: ' + response.message);
+                    showToast('error', 'Error: ' + response.message);
                 }
             },
             error: function(error) {
                 console.error('Error deleting task:', error);
-                alert('Error deleting task');
+                showToast('error', 'Error deleting task');
             }
         });
     });

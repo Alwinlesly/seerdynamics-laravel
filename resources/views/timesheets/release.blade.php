@@ -482,7 +482,7 @@
         const formData = $('#releaseForm').serialize();
 
         if ($('.timesheet-checkbox:checked').length === 0) {
-            alert('Please select at least one timesheet to release');
+            showToast('warning', 'Please select at least one timesheet to release');
             return;
         }
 
@@ -495,14 +495,14 @@
             },
             success: function(response) {
                 if (response.error) {
-                    alert('Error: ' + response.message);
+                    showToast('error', 'Error: ' + response.message);
                 } else {
-                    alert(response.message);
+                    showToast('success', response.message);
                     loadTimesheets();
                 }
             },
             error: function(xhr) {
-                alert('Error releasing timesheets');
+                showToast('error', 'Error releasing timesheets');
                 console.error(xhr);
             }
         });
@@ -541,7 +541,7 @@
 
     function downloadExcel() {
         // Implement Excel export functionality
-        alert('Excel export functionality to be implemented');
+        showToast('info', 'Excel export functionality to be implemented');
     }
 </script>
 @endpush

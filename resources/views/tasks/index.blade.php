@@ -376,11 +376,11 @@
                 if (!response.error) {
                     // Reload task detail to show new comment
                     $('.view-task[data-id="' + taskId + '"]').click();
-                    alert('Comment added successfully');
+                    showToast('success', 'Comment added successfully');
                 }
             },
             error: function() {
-                alert('Failed to add comment');
+                showToast('error', 'Failed to add comment');
             }
         });
     });
@@ -458,7 +458,7 @@
         const isRunning = $(this).hasClass('timer-running');
         
         if (!taskId) {
-            alert('No task selected');
+            showToast('warning', 'No task selected');
             return;
         }
         
@@ -473,16 +473,16 @@
                         $('#timerBtnText').text('Start timer');
                         $('#timerBtn').removeClass('timer-running');
                         stopTimerDisplay();
-                        alert(`Timer stopped. Total: ${response.total_hours} hours`);
+                        showToast('success', `Timer stopped. Total: ${response.total_hours} hours`);
                         
                         // Reload task detail to update timesheet tab
                         $('.view-task[data-id="' + taskId + '"]').click();
                     } else {
-                        alert(response.message || 'Failed to stop timer');
+                        showToast('error', response.message || 'Failed to stop timer');
                     }
                 },
                 error: function() {
-                    alert('Failed to stop timer');
+                    showToast('error', 'Failed to stop timer');
                 }
             });
         } else {
@@ -497,11 +497,11 @@
                         $('#timerBtn').addClass('timer-running');
                         startTimerDisplay(0);
                     } else {
-                        alert(response.message || 'Failed to start timer');
+                        showToast('error', response.message || 'Failed to start timer');
                     }
                 },
                 error: function() {
-                    alert('Failed to start timer');
+                    showToast('error', 'Failed to start timer');
                 }
             });
         }
@@ -526,7 +526,7 @@
                 }
             },
             error: function(error) {
-                alert('Error loading task data');
+                showToast('error', 'Error loading task data');
             }
         });
     });

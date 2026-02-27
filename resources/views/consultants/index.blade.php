@@ -330,10 +330,11 @@
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
             success: function(response) {
                 if (!response.error) {
+                    showToast('success', response.message || 'Consultant created successfully!');
                     $('#createModal').modal('hide');
-                    location.reload();
+                    setTimeout(function() { location.reload(); }, 1500);
                 } else {
-                    alert(response.message);
+                    showToast('error', response.message);
                 }
             },
             error: function(xhr) {
@@ -341,9 +342,9 @@
                 if (errors && errors.errors) {
                     var msg = '';
                     $.each(errors.errors, function(key, val) { msg += val[0] + '\n'; });
-                    alert(msg);
+                    showToast('error', msg);
                 } else {
-                    alert('Error creating consultant');
+                    showToast('error', 'Error creating consultant');
                 }
             }
         });
@@ -373,7 +374,7 @@
                     
                     $('#editModal').modal('show');
                 } else {
-                    alert(response.message);
+                    showToast('error', response.message);
                 }
             }
         });
@@ -389,14 +390,15 @@
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
             success: function(response) {
                 if (!response.error) {
+                    showToast('success', response.message || 'Consultant updated successfully!');
                     $('#editModal').modal('hide');
-                    location.reload();
+                    setTimeout(function() { location.reload(); }, 1500);
                 } else {
-                    alert(response.message);
+                    showToast('error', response.message);
                 }
             },
             error: function(xhr) {
-                alert('Error updating consultant');
+                showToast('error', 'Error updating consultant');
             }
         });
     });
@@ -415,10 +417,11 @@
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
             success: function(response) {
                 if (!response.error) {
+                    showToast('success', response.message || 'Status updated successfully!');
                     $('#editModal').modal('hide');
-                    location.reload();
+                    setTimeout(function() { location.reload(); }, 1500);
                 } else {
-                    alert(response.message);
+                    showToast('error', response.message);
                 }
             }
         });
@@ -438,10 +441,11 @@
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
             success: function(response) {
                 if (!response.error) {
+                    showToast('success', response.message || 'Consultant deleted successfully!');
                     $('#deleteModal').modal('hide');
-                    location.reload();
+                    setTimeout(function() { location.reload(); }, 1500);
                 } else {
-                    alert(response.message);
+                    showToast('error', response.message);
                 }
             }
         });

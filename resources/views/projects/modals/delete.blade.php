@@ -30,11 +30,11 @@ function confirmDelete() {
         },
         success: function(response) {
             if (!response.error) {
-                alert(response.message);
+                showToast('success', response.message);
                 $('#deleteProjectModal').modal('hide');
-                window.location.href = '{{ route("projects.index") }}';
+                setTimeout(function() { window.location.href = '{{ route("projects.index") }}'; }, 1500);
             } else {
-                alert(response.message);
+                showToast('error', response.message);
             }
         }
     });

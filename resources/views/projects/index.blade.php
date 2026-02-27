@@ -309,12 +309,12 @@ $(document).on('click', '.edit-project', function() {
                 // Show modal
                 $('#editProjectModal').modal('show');
             } else {
-                alert(data.message);
+                showToast('error', data.message);
             }
         },
         error: function(xhr) {
             console.error(xhr.responseText);
-            alert('Error loading project data');
+            showToast('error', 'Error loading project data');
         }
     });
 });

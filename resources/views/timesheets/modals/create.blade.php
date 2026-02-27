@@ -77,14 +77,14 @@ $('#createTimesheetForm').on('submit', function(e) {
                 $('#createTimesheetModal').modal('hide');
                 $('#createTimesheetForm')[0].reset();
                 loadTimesheets();
-                alert('Timesheet created successfully!');
+                showToast('success', 'Timesheet created successfully!');
             } else {
-                alert('Error creating timesheet: ' + response.message);
+                showToast('error', 'Error creating timesheet: ' + response.message);
             }
         },
         error: function(xhr) {
             const error = xhr.responseJSON?.message || 'Please check all fields.';
-            alert('Error creating timesheet: ' + error);
+            showToast('error', 'Error creating timesheet: ' + error);
         }
     });
 });

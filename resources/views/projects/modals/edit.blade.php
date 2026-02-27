@@ -155,16 +155,16 @@ $('#editProjectForm').on('submit', function(e) {
         contentType: false,
         success: function(response) {
             if (!response.error) {
-                alert(response.message);
+                showToast('success', response.message);
                 $('#editProjectModal').modal('hide');
                 loadProjects();
             } else {
-                alert(response.message);
+                showToast('error', response.message);
             }
         },
         error: function(xhr) {
             console.error(xhr.responseText);
-            alert('Error updating project');
+            showToast('error', 'Error updating project');
         }
     });
 });

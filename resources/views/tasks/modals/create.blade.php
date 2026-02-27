@@ -136,14 +136,14 @@
                     $('#createTaskModal').modal('hide');
                     $('#createTaskForm')[0].reset();
                     loadTasks();
-                    alert('Task created successfully!');
+                    showToast('success', 'Task created successfully!');
                 } else {
-                    alert('Error: ' + response.message);
+                    showToast('error', 'Error: ' + response.message);
                 }
             },
             error: function(error) {
                 console.error('Error creating task:', error);
-                alert('Error creating task');
+                showToast('error', 'Error creating task');
             }
         });
     });

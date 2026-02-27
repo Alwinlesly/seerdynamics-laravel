@@ -222,14 +222,13 @@ $(document).ready(function() {
       dataType: 'json',
       beforeSend: function() {
         submitBtn.prop('disabled', true).text('Please wait...');
-        $('.result').html('<div class="alert alert-info">Logging in...</div>');
       },
       success: function(response) {
         if (response.error) {
-          $('.result').html('<div class="alert alert-danger">' + response.message + '</div>');
+          showToast('error', response.message);
           submitBtn.prop('disabled', false).text(originalText);
         } else {
-          $('.result').html('<div class="alert alert-success">' + response.message + '</div>');
+          showToast('success', response.message);
           setTimeout(function() {
             window.location.href = base_url + 'projects';
           }, 500);
@@ -240,7 +239,7 @@ $(document).ready(function() {
         if (xhr.responseJSON && xhr.responseJSON.message) {
           errorMsg = xhr.responseJSON.message;
         }
-        $('.result').html('<div class="alert alert-danger">' + errorMsg + '</div>');
+        showToast('error', errorMsg);
         submitBtn.prop('disabled', false).text(originalText);
       }
     });
@@ -258,7 +257,7 @@ $(document).ready(function() {
     var email = form.find('input[name="identity"]').val();
     
     if (!email) {
-      $('#forgot-result').html('<div class="alert alert-danger">Please enter your email.</div>');
+      showToast('warning', 'Please enter your email.');
       return;
     }
 
@@ -269,14 +268,13 @@ $(document).ready(function() {
       dataType: 'json',
       beforeSend: function() {
         $('#send-reset-link').prop('disabled', true).text('Sending...');
-        $('#forgot-result').html('<div class="alert alert-info">Sending reset link...</div>');
       },
       success: function(response) {
         if (response.error) {
-          $('#forgot-result').html('<div class="alert alert-danger">' + response.message + '</div>');
+          showToast('error', response.message);
           $('#send-reset-link').prop('disabled', false).text('Send');
         } else {
-          $('#forgot-result').html('<div class="alert alert-success">' + response.message + '</div>');
+          showToast('success', response.message);
           setTimeout(function() {
             $('#forgotPasswordModal').modal('hide');
             form[0].reset();
@@ -286,7 +284,7 @@ $(document).ready(function() {
         }
       },
       error: function() {
-        $('#forgot-result').html('<div class="alert alert-danger">An error occurred. Please try again.</div>');
+        showToast('error', 'An error occurred. Please try again.');
         $('#send-reset-link').prop('disabled', false).text('Send');
       }
     });
@@ -295,4 +293,5 @@ $(document).ready(function() {
 </script>
 
 </body>
+@include('partials.toast')
 </html>

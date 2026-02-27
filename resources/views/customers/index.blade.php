@@ -236,11 +236,11 @@ $(document).ready(function() {
                     
                     $('#editCustomerModal').modal('show');
                 } else {
-                    alert('Failed to load customer data');
+                    showToast('error', 'Failed to load customer data');
                 }
             },
             error: function() {
-                alert('Failed to load customer data');
+                showToast('error', 'Failed to load customer data');
             }
         });
     });

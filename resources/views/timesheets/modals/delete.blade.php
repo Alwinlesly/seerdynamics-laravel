@@ -31,13 +31,13 @@ $('#confirmDeleteTimesheet').on('click', function() {
             if (!response.error) {
                 $('#deleteTimesheetModal').modal('hide');
                 loadTimesheets();
-                alert('Timesheet deleted successfully!');
+                showToast('success', 'Timesheet deleted successfully!');
             } else {
-                alert('Error deleting timesheet: ' + response.message);
+                showToast('error', 'Error deleting timesheet: ' + response.message);
             }
         },
         error: function(xhr) {
-            alert('Error deleting timesheet');
+            showToast('error', 'Error deleting timesheet');
         }
     });
 });

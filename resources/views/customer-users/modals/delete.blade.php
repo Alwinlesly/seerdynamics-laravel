@@ -38,14 +38,14 @@ $('#confirmDeleteCustomerUser').on('click', function() {
             if (!response.error) {
                 $('#deleteCustomerUserModal').modal('hide');
                 loadCustomerUsers();
-                alert('Customer user deleted successfully!');
+                showToast('success', 'Customer user deleted successfully!');
             } else {
-                alert('Error deleting customer user: ' + response.message);
+                showToast('error', 'Error deleting customer user: ' + response.message);
             }
         },
         error: function(xhr) {
             const response = xhr.responseJSON;
-            alert('Error deleting customer user: ' + (response?.message || 'Unknown error'));
+            showToast('error', 'Error deleting customer user: ' + (response?.message || 'Unknown error'));
         }
     });
 });

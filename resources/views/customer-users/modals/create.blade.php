@@ -110,7 +110,7 @@ $(document).ready(function() {
         const confirmPassword = $('#confirmPassword').val();
         
         if (password !== confirmPassword) {
-            alert('Password and confirm password do not match!');
+            showToast('warning', 'Password and confirm password do not match!');
             return;
         }
         
@@ -134,14 +134,14 @@ $(document).ready(function() {
                     $('#createCustomerUserModal').modal('hide');
                     $('#createCustomerUserForm')[0].reset();
                     loadCustomerUsers();
-                    alert('Customer user created successfully!');
+                    showToast('success', 'Customer user created successfully!');
                 } else {
-                    alert('Error creating customer user: ' + response.message);
+                    showToast('error', 'Error creating customer user: ' + response.message);
                 }
             },
             error: function(xhr) {
                 const error = xhr.responseJSON?.message || 'Please check all fields.';
-                alert('Error creating customer user: ' + error);
+                showToast('error', 'Error creating customer user: ' + error);
             }
         });
     });

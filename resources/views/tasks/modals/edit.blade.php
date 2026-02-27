@@ -142,14 +142,14 @@
                 if (!response.error) {
                     $('#editTaskModal').modal('hide');
                     loadTasks();
-                    alert('Task updated successfully!');
+                    showToast('success', 'Task updated successfully!');
                 } else {
-                    alert('Error: ' + response.message);
+                    showToast('error', 'Error: ' + response.message);
                 }
             },
             error: function(error) {
                 console.error('Error updating task:', error);
-                alert('Error updating task');
+                showToast('error', 'Error updating task');
             }
         });
     });

@@ -235,11 +235,11 @@ $(document).ready(function() {
                     
                     $('#editCustomerUserModal').modal('show');
                 } else {
-                    alert('Failed to load customer user data');
+                    showToast('error', 'Failed to load customer user data');
                 }
             },
             error: function() {
-                alert('Failed to load customer user data');
+                showToast('error', 'Failed to load customer user data');
             }
         });
     });

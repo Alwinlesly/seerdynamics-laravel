@@ -152,15 +152,15 @@ $('#createProjectForm').on('submit', function(e) {
         contentType: false,
         success: function(response) {
             if (!response.error) {
-                alert(response.message);
+                showToast('success', response.message);
                 $('#createProjectModal').modal('hide');
                 loadProjects();
             } else {
-                alert(response.message);
+                showToast('error', response.message);
             }
         },
         error: function(xhr) {
-            alert('Error creating project');
+            showToast('error', 'Error creating project');
         }
     });
 });

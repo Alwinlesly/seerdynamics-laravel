@@ -92,18 +92,14 @@ $(document).ready(function() {
                     loadCustomers();
                     
                     // Show success message
-                    const alert = $('<div class="alert alert-success alert-dismissible fade show position-fixed top-0 end-0 m-3" style="z-index: 9999;">' +
-                        '<i class="bi bi-check-circle me-2"></i>' + response.message +
-                        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
-                    $('body').append(alert);
-                    setTimeout(() => alert.remove(), 3000);
+                    showToast('success', response.message);
                 } else {
-                    alert(response.message || 'Failed to update customer');
+                    showToast('error', response.message || 'Failed to update customer');
                 }
             },
             error: function(xhr) {
                 const message = xhr.responseJSON?.message || 'Failed to update customer';
-                alert(message);
+                showToast('error', message);
             },
             complete: function() {
                 submitBtn.prop('disabled', false).html('Update Customer');

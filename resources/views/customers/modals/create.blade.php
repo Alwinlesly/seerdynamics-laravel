@@ -132,14 +132,14 @@ $(document).ready(function() {
                     $('#createCustomerForm')[0].reset();
                     $('#logoFileName').val('');
                     loadCustomers();
-                    alert('Customer created successfully!');
+                    showToast('success', 'Customer created successfully!');
                 } else {
-                    alert('Error creating customer: ' + response.message);
+                    showToast('error', 'Error creating customer: ' + response.message);
                 }
             },
             error: function(xhr) {
                 const error = xhr.responseJSON?.message || 'Please check all fields.';
-                alert('Error creating customer: ' + error);
+                showToast('error', 'Error creating customer: ' + error);
             }
         });
     });
