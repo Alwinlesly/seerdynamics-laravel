@@ -74,12 +74,6 @@
         </a>
     </div>
     @endif
-
-    <div class="nav-item mb-3">
-        <a class="menu-sidebar--item" href="{{ route('logout') }}">
-            Logout
-        </a>
-    </div>
 </aside>
 
 <style>
