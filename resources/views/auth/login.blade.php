@@ -231,7 +231,7 @@ $(document).ready(function() {
         } else {
           $('.result').html('<div class="alert alert-success">' + response.message + '</div>');
           setTimeout(function() {
-            window.location.href = base_url + 'home';
+            window.location.href = base_url + 'projects';
           }, 500);
         }
       },

@@ -14,7 +14,7 @@ class LoginController extends Controller
     public function index()
     {
         if (Auth::check()) {
-            return redirect()->route('home');
+            return redirect()->route('projects.index');
         }
         $data['page_title'] = 'Login - ' . company_name();
         return view('auth.login', $data);

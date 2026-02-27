@@ -1,18 +1,12 @@
 <aside class="col-lg-3 pt-3 sidebar">
-    <div class="nav-item mb-3">
-        <a class="nav-link active d-flex justify-content-start align-items-center gap-3" href="{{ route('home') }}">
-            Dashboard
-        </a>
-    </div>
-
     @if(!auth()->user()->inGroup(3))
     <div class="nav-item mb-3">
-        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('projects.index') }}">
+        <a class="menu-sidebar--item" href="{{ route('projects.index') }}">
             Projects
         </a>
     </div>
     <div class="nav-item mb-3">
-        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('tasks.index') }}">
+        <a class="menu-sidebar--item" href="{{ route('tasks.index') }}">
             Tickets
         </a>
     </div>
@@ -20,13 +14,12 @@
     
     @if(auth()->user()->inGroup(1))
     <div class="nav-item mb-3">
-        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('customers.index') }}">
+        <a class="menu-sidebar--item" href="{{ route('customers.index') }}">
             Customers
         </a>
     </div>
-    
     <div class="nav-item mb-3">
-        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('customer-users.index') }}">
+        <a class="menu-sidebar--item" href="{{ route('customer-users.index') }}">
             Customer users
         </a>
     </div>
@@ -34,39 +27,39 @@
     
     @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(2))
     <div class="nav-item mb-3">
-        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('timesheets.index') }}">
-            Timesheet
+        <a class="menu-sidebar--item has-submenu" href="#" onclick="toggleTimesheetSubmenu(event)">
+            <span>Timesheet</span>
+            <span class="dropdown-arrow" id="timesheetArrow">▶</span>
         </a>
-    </div>
-    <div class="nav-item mb-3">
-        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('timesheets.release') }}">
-            Timesheet Release
-        </a>
-    </div>
-    <div class="nav-item mb-3">
-        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('support-statement.index') }}">
-            Support Statement
-        </a>
+        <div class="submenu" id="timesheetSubmenu">
+            <a class="menu-sidebar--item" href="{{ route('timesheets.index') }}">Timesheet</a>
+            <a class="menu-sidebar--item" href="{{ route('timesheets.release') }}">Timesheet Release</a>
+            <a class="menu-sidebar--item" href="{{ route('support-statement.index') }}">Support Statement</a>
+        </div>
     </div>
     @endif
 
     @if(auth()->user()->inGroup(1))
     <div class="nav-item mb-3">
-        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('consultants.index') }}">
+        <a class="menu-sidebar--item" href="{{ route('consultants.index') }}">
             Consultants
         </a>
     </div>
     @endif
 
     <div class="nav-item mb-3">
-        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('logout') }}">
-            <span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/>
-                    <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"/>
-                </svg>
-            </span>
+        <a class="menu-sidebar--item" href="{{ route('logout') }}">
             Logout
         </a>
     </div>
 </aside>
+
+<script>
+function toggleTimesheetSubmenu(event) {
+    event.preventDefault();
+    var submenu = document.getElementById('timesheetSubmenu');
+    var arrow = document.getElementById('timesheetArrow');
+    submenu.classList.toggle('show');
+    arrow.classList.toggle('rotated');
+}
+</script>
