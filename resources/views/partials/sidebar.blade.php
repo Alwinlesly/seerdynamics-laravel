@@ -38,6 +38,16 @@
             Timesheet
         </a>
     </div>
+    <div class="nav-item mb-3">
+        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('timesheets.release') }}">
+            Timesheet Release
+        </a>
+    </div>
+    <div class="nav-item mb-3">
+        <a class="nav-link d-flex justify-content-start align-items-center gap-3" href="{{ route('support-statement.index') }}">
+            Support Statement
+        </a>
+    </div>
     @endif
 
     <div class="nav-item mb-3">

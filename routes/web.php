@@ -93,6 +93,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/release/save', [App\Http\Controllers\TimesheetReleaseController::class, 'saveRelease'])->name('timesheets.release.save');
         Route::post('/release/projects', [App\Http\Controllers\TimesheetReleaseController::class, 'getProjectsByCustomer'])->name('timesheets.release.projects');
     });
+    
+    // Support Statement Routes
+    Route::prefix('support-statement')->group(function () {
+        Route::get('/', [App\Http\Controllers\SupportStatementController::class, 'index'])->name('support-statement.index');
+        Route::post('/report', [App\Http\Controllers\SupportStatementController::class, 'reportView'])->name('support-statement.report');
+        Route::post('/print', [App\Http\Controllers\SupportStatementController::class, 'generatePrint'])->name('support-statement.print');
+        Route::post('/projects', [App\Http\Controllers\SupportStatementController::class, 'getProjectsByCustomer'])->name('support-statement.projects');
+    });
 });
 
 // Admin Only Routes (example)
