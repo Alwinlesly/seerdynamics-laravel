@@ -1,17 +1,17 @@
 <aside class="col-lg-3 pt-3 sidebar">
-    {{-- Projects: admin or anyone with project_view (groups 1,2 — not customers/cusers) --}}
+    {{-- Projects: admin or consultant (groups 1,2) --}}
     @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(2))
     <div class="nav-item mb-3">
-        <a class="menu-sidebar--item" href="{{ route('projects.index') }}">
+        <a class="menu-sidebar--item {{ request()->routeIs('projects.*') ? 'active-menu' : '' }}" href="{{ route('projects.index') }}">
             Projects
         </a>
     </div>
     @endif
 
-    {{-- Tickets: admin or anyone with task_view (groups 1,2 — not customers/cusers) --}}
+    {{-- Tickets: admin or consultant (groups 1,2) --}}
     @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(2))
     <div class="nav-item mb-3">
-        <a class="menu-sidebar--item" href="{{ route('tasks.index') }}">
+        <a class="menu-sidebar--item {{ request()->routeIs('tasks.*') ? 'active-menu' : '' }}" href="{{ route('tasks.index') }}">
             Tickets
         </a>
     </div>
@@ -20,7 +20,7 @@
     {{-- Customers: admin only --}}
     @if(auth()->user()->inGroup(1))
     <div class="nav-item mb-3">
-        <a class="menu-sidebar--item" href="{{ route('customers.index') }}">
+        <a class="menu-sidebar--item {{ request()->routeIs('customers.*') ? 'active-menu' : '' }}" href="{{ route('customers.index') }}">
             Customers
         </a>
     </div>
@@ -29,7 +29,7 @@
     {{-- Customer Users: admin or customer (group 3) --}}
     @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(3))
     <div class="nav-item mb-3">
-        <a class="menu-sidebar--item" href="{{ route('customer-users.index') }}">
+        <a class="menu-sidebar--item {{ request()->routeIs('customer-users.*') ? 'active-menu' : '' }}" href="{{ route('customer-users.index') }}">
             Customer users
         </a>
     </div>
@@ -37,43 +37,39 @@
 
     {{-- Timesheet dropdown: admin or consultant (groups 1,2) --}}
     @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(2))
+    @php
+        $timesheetActive = request()->routeIs('timesheets.*') || request()->routeIs('support-statement.*');
+    @endphp
     <div class="nav-item mb-3">
-        <a class="menu-sidebar--item has-submenu" href="#" onclick="toggleTimesheetSubmenu(event)">
+        <a class="menu-sidebar--item has-submenu {{ $timesheetActive ? 'active-menu' : '' }}" href="#" onclick="toggleTimesheetSubmenu(event)">
             <span>Timesheet</span>
-            <span class="dropdown-arrow" id="timesheetArrow">▶</span>
+            <span class="dropdown-arrow {{ $timesheetActive ? 'rotated' : '' }}" id="timesheetArrow">▶</span>
         </a>
-        <div class="submenu" id="timesheetSubmenu">
-            {{-- Timesheet: admin + consultant (not customer, not cuser) --}}
-            <a class="menu-sidebar--item" href="{{ route('timesheets.index') }}">Timesheet</a>
+        <div class="submenu {{ $timesheetActive ? 'show' : '' }}" id="timesheetSubmenu">
+            <a class="menu-sidebar--item {{ request()->routeIs('timesheets.index') || request()->routeIs('timesheets.create') ? 'active-menu' : '' }}" href="{{ route('timesheets.index') }}">Timesheet</a>
 
-            {{-- Timesheet Release: admin only --}}
             @if(auth()->user()->inGroup(1))
-            <a class="menu-sidebar--item" href="{{ route('timesheets.release') }}">Timesheet Release</a>
+            <a class="menu-sidebar--item {{ request()->routeIs('timesheets.release') ? 'active-menu' : '' }}" href="{{ route('timesheets.release') }}">Timesheet Release</a>
             @endif
 
-                {{-- Support Statement: standalone for customers (group 3) --}}
-            @if(auth()->user()->inGroup(3))
-  
-                <a class="menu-sidebar--item" href="{{ route('support-statement.index') }}">Support Statement</a>
-
-            @endif
-
-            {{-- Support Statement: also visible to admin (inside their own context) --}}
-            @if(auth()->user()->inGroup(1))
- 
-                <a class="menu-sidebar--item" href="{{ route('support-statement.index') }}">Support Statement</a>
-  
-            @endif
+            <a class="menu-sidebar--item {{ request()->routeIs('support-statement.*') ? 'active-menu' : '' }}" href="{{ route('support-statement.index') }}">Support Statement</a>
         </div>
     </div>
     @endif
 
-
+    {{-- Support Statement: standalone for customers (group 3) only --}}
+    @if(auth()->user()->inGroup(3))
+    <div class="nav-item mb-3">
+        <a class="menu-sidebar--item {{ request()->routeIs('support-statement.*') ? 'active-menu' : '' }}" href="{{ route('support-statement.index') }}">
+            Support Statement
+        </a>
+    </div>
+    @endif
 
     {{-- Consultants: admin only --}}
     @if(auth()->user()->inGroup(1))
     <div class="nav-item mb-3">
-        <a class="menu-sidebar--item" href="{{ route('consultants.index') }}">
+        <a class="menu-sidebar--item {{ request()->routeIs('consultants.*') ? 'active-menu' : '' }}" href="{{ route('consultants.index') }}">
             Consultants
         </a>
     </div>
@@ -85,6 +81,13 @@
         </a>
     </div>
 </aside>
+
+<style>
+    .active-menu {
+        color: #000 !important;
+        font-weight: 700 !important;
+    }
+</style>
 
 <script>
 function toggleTimesheetSubmenu(event) {
