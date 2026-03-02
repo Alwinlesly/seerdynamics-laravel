@@ -195,6 +195,12 @@ class ProjectController extends Controller
             $data['days_left'] = 0;
         }
         
+        // Data needed for the edit modal
+        $data['customers'] = User::whereHas('groups', function($q) {
+            $q->where('groups.id', 3);
+        })->get();
+        $data['project_statuses'] = \App\Models\ProjectStatus::all();
+        
         return view('projects.show', $data);
     }
     

@@ -138,6 +138,18 @@ class TimesheetController extends Controller
                 $query->where('weekly_timesheet.submit_or_draft', $request->status);
             }
             
+            // Project filter — /projects/{id} Timesheet button passes ?project={id}
+            if ($request->filled('project')) {
+                $projectId = $request->project;
+                $query->whereExists(function ($sub) use ($projectId) {
+                    $sub->select(DB::raw(1))
+                        ->from('weekly_timesheet_project_task_details as wpd')
+                        ->whereColumn('wpd.timesheet_id', 'weekly_timesheet.id')
+                        ->where('wpd.project_id', $projectId)
+                        ->where('wpd.status', 1);
+                });
+            }
+            
             // Search filter (exact CodeIgniter logic)
             if (!empty($search)) {
                 $query->where(function($q) use ($search) {

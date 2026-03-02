@@ -241,6 +241,10 @@ let currentPage = 1;
 let itemsPerPage = 10;
 let totalRecords = 0;
 
+// Read project filter from URL query string (e.g. ?project=74)
+const urlParams = new URLSearchParams(window.location.search);
+const projectFilter = urlParams.get('project') || '';
+
 function loadTimesheets() {
     const search = $('#searchInput').val() || '';
     const user_id = $('#consultantFilter').val() || '';
@@ -260,6 +264,7 @@ function loadTimesheets() {
             search: search,
             user_id: user_id,
             status: status,
+            project: projectFilter,
             offset: offset,
             limit: itemsPerPage
         },

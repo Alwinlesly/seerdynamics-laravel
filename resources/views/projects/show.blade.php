@@ -21,7 +21,7 @@
                         <div class="d-flex justify-content-center flex-wrap">
                             <div class="btn-group pd_sc--btn-group" role="group">
                                 <button class="btn btn-purple" onclick="window.location.href='/tasks?project={{ $project->id }}'">Tickets</button>
-                                <button class="btn btn-purple">Timesheet</button>
+                                <button class="btn btn-purple" onclick="window.location.href='{{ route('timesheets.index') }}?project={{ $project->id }}'">Timesheet</button>
                                 <button class="btn btn-outline-purple" onclick="editProject({{ $project->id }})">Edit</button>
                                 <button class="btn btn-outline-red btn-rounded" onclick="deleteProject({{ $project->id }})">Delete</button>
                             </div>
@@ -196,9 +196,33 @@
             </div>
 
             @include('partials.footer')
+        </div>{{-- .right-section --}}
+    </div>{{-- .row --}}
+</div>{{-- .main --}}
+
+{{-- Edit Project Modal (inline so Bootstrap can find it) --}}
+@include('projects.modals.edit')
+
+{{-- Delete Project Modal --}}
+<div class="modal fade" id="deleteProjectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this project? This action cannot be undone.</p>
+                <input type="hidden" id="deleteProjectId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteProject">Delete</button>
+            </div>
         </div>
     </div>
 </div>
+
 @endsection
 
 @push('scripts')
@@ -247,12 +271,66 @@ function deleteFile(fileId) {
 }
 
 function editProject(id) {
-    window.location.href = `/projects/${id}/edit`;
+    // Load project data into the modal via AJAX, then show modal
+    $.ajax({
+        url: `/projects/${id}/edit`,
+        method: 'GET',
+        success: function(response) {
+            if (!response.error) {
+                const p = response.project;
+                $('#editProjectId').val(p.id);
+                $('#edit_title').val(p.title);
+                $('#edit_description').val(p.description);
+                $('#edit_services_offered').val(p.services_offered);
+                $('#edit_starting_date').val(p.starting_date);
+                $('#edit_ending_date').val(p.ending_date);
+                $('#edit_actual_starting_date').val(p.actual_starting_date);
+                $('#edit_actual_ending_date').val(p.actual_ending_date);
+                $('#edit_project_value').val(p.project_value);
+                $('#edit_project_currency').val(p.project_currency);
+                $('#edit_total_hours').val(p.total_hours);
+                $('#edit_project_type').val(p.project_type);
+                $('#edit_client_id').val(p.client_id);
+                $('#edit_status option').each(function() {
+                    $(this).prop('selected', $(this).val() === p.status_title);
+                });
+                $('#editDefaultProject').prop('checked', p.is_default);
+                $('#editVisibleToCustomer').prop('checked', !p.is_visible_to_customer);
+                $('#editProjectModal').modal('show');
+            } else {
+                showToast('error', response.message || 'Failed to load project data');
+            }
+        },
+        error: function() {
+            showToast('error', 'Error loading project data');
+        }
+    });
 }
 
 function deleteProject(id) {
     $('#deleteProjectId').val(id);
     $('#deleteProjectModal').modal('show');
 }
+
+$('#confirmDeleteProject').on('click', function() {
+    const id = $('#deleteProjectId').val();
+    $.ajax({
+        url: `/projects/${id}`,
+        method: 'DELETE',
+        data: { _token: '{{ csrf_token() }}' },
+        success: function(response) {
+            if (!response.error) {
+                showToast('success', response.message);
+                setTimeout(() => window.location.href = '{{ route("projects.index") }}', 1200);
+            } else {
+                showToast('error', response.message);
+            }
+        },
+        error: function() {
+            showToast('error', 'Error deleting project');
+        }
+    });
+    $('#deleteProjectModal').modal('hide');
+});
 </script>
 @endpush
