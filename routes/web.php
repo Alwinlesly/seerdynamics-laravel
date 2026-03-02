@@ -86,6 +86,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/create', [App\Http\Controllers\TimesheetController::class, 'create'])->name('timesheets.create');
         Route::post('/store', [App\Http\Controllers\TimesheetController::class, 'store'])->name('timesheets.store');
         Route::delete('/{id}', [App\Http\Controllers\TimesheetController::class, 'destroy'])->name('timesheets.destroy');
+        Route::get('/{id}/show', [App\Http\Controllers\TimesheetController::class, 'show'])->name('timesheets.show');
+        Route::get('/{id}/edit', [App\Http\Controllers\TimesheetController::class, 'edit'])->name('timesheets.edit');
+        Route::post('/{id}/update', [App\Http\Controllers\TimesheetController::class, 'update'])->name('timesheets.update');
+
+        // AJAX helper endpoints for create/edit form
+        Route::get('/customers', [App\Http\Controllers\TimesheetController::class, 'getCustomers'])->name('timesheets.customers');
+        Route::post('/projects-by-customer', [App\Http\Controllers\TimesheetController::class, 'getProjectsByCustomer'])->name('timesheets.projects-by-customer');
+        Route::post('/tasks-by-project', [App\Http\Controllers\TimesheetController::class, 'getTasksByProject'])->name('timesheets.tasks-by-project');
+        Route::post('/day-totals', [App\Http\Controllers\TimesheetController::class, 'getDayTotalHours'])->name('timesheets.day-totals');
         
         // Timesheet Release Routes
         Route::get('/release', [App\Http\Controllers\TimesheetReleaseController::class, 'index'])->name('timesheets.release');

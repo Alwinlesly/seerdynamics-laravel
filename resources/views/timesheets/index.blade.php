@@ -89,13 +89,13 @@
                             </select>
                         </div>
                         
-                        <button class="btn btn-create" data-bs-toggle="modal" data-bs-target="#createTimesheetModal">
+                        <a href="{{ route('timesheets.create') }}" class="btn btn-create">
                             <span>
                                 <svg fill="#fff" width="20px" height="20px" viewBox="0 0 24 24" id="plus" data-name="Flat Color" xmlns="http://www.w3.org/2000/svg" class="icon flat-color">
                                     <path id="primary" d="M12,20a1,1,0,0,1-1-1V13H5a1,1,0,0,1,0-2h6V5a1,1,0,0,1,2,0v6h6a1,1,0,0,1,0,2H13v6A1,1,0,0,1,12,20Z" style="fill: #fff"></path>
                                 </svg>
                             </span> Create
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -338,7 +338,21 @@ function renderTimesheets(timesheets, total) {
                 <td class="text-center"><span class="${timesheet.status_class || ''}">${timesheet.status || 'N/A'}</span></td>
                 <td>
                     <div class="d-flex gap-2 align-items-center justify-content-center">
-                        <span class="delete-timesheet" data-id="${timesheet.id}" data-name="${timesheet.timesheet_id || 'Timesheet'}" style="cursor: pointer;">
+                        {{-- View icon --}}
+                        <a href="{{ url('timesheet') }}/${timesheet.id}/show" title="View">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </a>
+                        {{-- Edit icon --}}
+                        <a href="{{ url('timesheet') }}/${timesheet.id}/edit" title="Edit">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                        </a>
+                        {{-- Delete icon --}}
+                        <span class="delete-timesheet" data-id="${timesheet.id}" data-name="${timesheet.timesheet_id || 'Timesheet'}" style="cursor:pointer;" title="Delete">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="3 6 5 6 21 6"/>
                                 <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
