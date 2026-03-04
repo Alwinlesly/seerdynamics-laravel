@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Project;
+use App\Services\EmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -185,6 +186,13 @@ class CustomerController extends Controller
                 'user_id' => $customer->id,
                 'group_id' => 3,
             ]);
+
+            // Send welcome email
+            try {
+                EmailService::sendWelcomeEmail($customer->email);
+            } catch (\Exception $emailEx) {
+                \Log::error('Welcome email failed for customer: ' . $emailEx->getMessage());
+            }
 
             return response()->json([
                 'error' => false,

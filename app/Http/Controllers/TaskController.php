@@ -12,6 +12,7 @@ use App\Models\Timesheet;
 use App\Models\TaskEstimate;
 use App\Models\Message;
 use App\Models\MediaFile;
+use App\Services\EmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -384,6 +385,24 @@ class TaskController extends Controller
                 $task->users()->sync($consultantIds);
             }
             
+            // Send email notifications (replicating CI's mail_me logic)
+            try {
+                $data = [];
+                EmailService::sendTicketEmail($task->id, 'NTKT', $data);
+                
+                // Additional status-based emails
+                $statusId = $validated['status'];
+                if ($statusId == 2) {
+                    EmailService::sendTicketEmail($task->id, 'ASGNCONSLT', $data);
+                } elseif ($statusId == 4) {
+                    EmailService::sendTicketEmail($task->id, 'TKTCOMPL', $data);
+                } elseif ($statusId == 5) {
+                    EmailService::sendTicketEmail($task->id, 'TKTCLOSE', $data);
+                }
+            } catch (\Exception $emailEx) {
+                \Log::error('Email notification failed for new task: ' . $emailEx->getMessage());
+            }
+            
             return response()->json([
                 'error' => false,
                 'message' => 'Task created successfully',
@@ -446,12 +465,39 @@ class TaskController extends Controller
                 $validated['attachment'] = 'assets/uploads/tasks/' . $filename;
             }
             
+            // Save old status before update
+            $oldStatus = $task->status;
+            
             $task->update($validated);
             
             // Update consultants
             if ($request->has('assigned_consultants')) {
                 $consultantIds = array_filter(explode(',', $request->assigned_consultants));
                 $task->users()->sync($consultantIds);
+            }
+            
+            // Send email notifications based on status change (replicating CI logic)
+            try {
+                $newStatus = $validated['status'];
+                $data = [];
+                
+                // If old status was Created (1) and consultant assigned, send ASGNCONSLT
+                if ($oldStatus == 1 && $newStatus != 1) {
+                    EmailService::sendTicketEmail($task->id, 'ASGNCONSLT', $data);
+                }
+                
+                // Status changed to Completed (4)
+                if ($newStatus == 4 && $oldStatus != 4) {
+                    $task->update(['completed_date' => now()]);
+                    EmailService::sendTicketEmail($task->id, 'TKTCOMPL', $data);
+                }
+                // Status changed to Closed (5)
+                elseif ($newStatus == 5 && $oldStatus != 5) {
+                    $task->update(['closed_date' => now()]);
+                    EmailService::sendTicketEmail($task->id, 'TKTCLOSE', $data);
+                }
+            } catch (\Exception $emailEx) {
+                \Log::error('Email notification failed for task update: ' . $emailEx->getMessage());
             }
             
             return response()->json([
@@ -838,6 +884,18 @@ class TaskController extends Controller
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
+            
+            // Send email notification for new message (replicating CI's NMSG action)
+            try {
+                $emailData = [
+                    'message' => $request->message,
+                    'IsNone' => $attachmentPath ? '' : 'none',
+                    'attachmment' => $attachmentPath ? basename($attachmentPath) : '',
+                ];
+                EmailService::sendTicketEmail($id, 'NMSG', $emailData);
+            } catch (\Exception $emailEx) {
+                \Log::error('Email notification failed for comment: ' . $emailEx->getMessage());
+            }
             
             return response()->json([
                 'error' => false,
