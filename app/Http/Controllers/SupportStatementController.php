@@ -43,8 +43,9 @@ class SupportStatementController extends Controller
             $projects = DB::table('project_users as pu')
                 ->join('projects as p', 'pu.project_id', '=', 'p.id')
                 ->select('p.id', 'p.project_id', 'p.title')
-                ->distinct()
-                ->orderBy('p.created', 'desc')
+                ->selectRaw('MAX(p.created) as created_at')
+                ->groupBy('p.id', 'p.project_id', 'p.title')
+                ->orderByDesc('created_at')
                 ->get();
         } else {
             // Non-admin: projects where user is assigned
@@ -52,8 +53,9 @@ class SupportStatementController extends Controller
                 ->join('projects as p', 'pu.project_id', '=', 'p.id')
                 ->where('pu.user_id', $user->id)
                 ->select('p.id', 'p.project_id', 'p.title')
-                ->distinct()
-                ->orderBy('p.created', 'desc')
+                ->selectRaw('MAX(p.created) as created_at')
+                ->groupBy('p.id', 'p.project_id', 'p.title')
+                ->orderByDesc('created_at')
                 ->get();
         }
         
