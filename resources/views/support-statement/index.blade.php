@@ -8,6 +8,11 @@
         background: #f8f9fa;
         border-radius: 8px;
         border: 1px solid #e2e2e2;
+        overflow: visible;
+    }
+
+    .datepicker-dropdown {
+        z-index: 1060 !important;
     }
 
     .ct-body .form-select,
@@ -245,7 +250,8 @@
         // Initialize datepickers
         $('#fromDateFilter, #toDateFilter').datepicker({
             format: 'dd-mm-yyyy',
-            autoclose: true
+            autoclose: true,
+            orientation: 'bottom auto'
         });
 
         // Customer change - update projects
