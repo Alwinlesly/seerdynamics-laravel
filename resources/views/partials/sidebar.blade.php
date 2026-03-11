@@ -10,8 +10,8 @@
     </div>
     @endif
 
-    {{-- Tickets: admin, consultant, or customer admin (groups 1,2,3) --}}
-    @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(2) || auth()->user()->inGroup(3))
+    {{-- Tickets: admin, consultant, customer admin, or customer user (groups 1,2,3,4) --}}
+    @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(2) || auth()->user()->inGroup(3) || auth()->user()->inGroup(4))
     <div class="nav-item mb-3">
         <a class="menu-sidebar--item {{ request()->routeIs('tasks.*') ? 'active-menu' : '' }}" href="{{ route('tasks.index') }}">
             Tickets

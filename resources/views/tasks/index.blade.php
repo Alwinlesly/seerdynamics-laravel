@@ -39,6 +39,7 @@
                 </div>
 
                 <div class="sel-wrapper">
+                    @if(!auth()->user()->inGroup(4))
                     <select class="form-select" id="customerFilter">
                         <option value="">Customer</option>
                         @if(isset($customers))
@@ -47,6 +48,7 @@
                             @endforeach
                         @endif
                     </select>
+                    @endif
 
                     <select class="form-select" id="projectFilter">
                         <option value="">Project</option>

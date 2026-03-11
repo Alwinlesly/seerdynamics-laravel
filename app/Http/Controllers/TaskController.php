@@ -41,9 +41,13 @@ class TaskController extends Controller
         $data['issue_types'] = IssueType::all();
         
         // Get projects for filter (based on user role)
-        if ($user->inGroup(3)) { // Customer - show projects for this user and parent company
+        if ($user->inGroup(3)) { // Customer admin - show projects for this user and parent company
             $clientIds = $user->getCustomerClientIds();
             $data['projects'] = Project::whereIn('client_id', $clientIds)->where('is_visible', 0)->get();
+        } elseif ($user->inGroup(4)) { // Customer user - show projects they have assigned tasks in
+            $data['projects'] = Project::whereHas('tasks.users', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->get();
         } elseif (!$user->inGroup(1)) { // Not admin
             $data['projects'] = Project::whereHas('users', function($q) use ($user) {
                 $q->where('user_id', $user->id);
@@ -74,7 +78,7 @@ class TaskController extends Controller
             $query = Task::query();
             
             // Role-based filtering
-            if ($user->inGroup(3)) { // Customer - show tasks for projects belonging to user or parent company
+            if ($user->inGroup(3)) { // Customer admin - all tasks for parent company projects
                 $clientIds = $user->getCustomerClientIds();
                 $query->whereHas('project', function($q) use ($clientIds) {
                     $q->whereIn('client_id', $clientIds)->where('is_visible', 0);

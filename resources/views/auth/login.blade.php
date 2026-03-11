@@ -230,7 +230,7 @@ $(document).ready(function() {
         } else {
           showToast('success', response.message);
           setTimeout(function() {
-            window.location.href = base_url + 'projects';
+            window.location.href = response.redirect || (base_url + 'projects');
           }, 500);
         }
       },

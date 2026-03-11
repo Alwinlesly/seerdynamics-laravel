@@ -14,6 +14,11 @@ class LoginController extends Controller
     public function index()
     {
         if (Auth::check()) {
+            $user = Auth::user();
+            // Customer users (group 4) go directly to tickets
+            if ($user->inGroup(4)) {
+                return redirect()->route('tasks.index');
+            }
             return redirect()->route('projects.index');
         }
         $data['page_title'] = 'Login - ' . company_name();
@@ -65,6 +70,7 @@ class LoginController extends Controller
         return response()->json([
             'error' => false,
             'message' => 'Login successful!',
+            'redirect' => $user->inGroup(4) ? route('tasks.index') : route('projects.index'),
         ]);
     }
     public function logout()
