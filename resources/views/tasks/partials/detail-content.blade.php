@@ -203,6 +203,67 @@
         <!-- Timesheet Tab -->
         <div class="tab-pane fade" id="timesheet" role="tabpanel">
             <div>
+                {{-- Weekly Timesheet Entries booked by consultants --}}
+                <h6 class="fw-bold mb-3 px-2 pt-2">Booked Hours</h6>
+                <div class="table-responsive tt-table">
+                    <table class="table table-bordered align-middle tt-table-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Consultant</th>
+                                <th>Date</th>
+                                <th class="text-center">Hours</th>
+                                <th class="text-center">Released</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if(isset($weeklyTimesheetEntries) && count($weeklyTimesheetEntries) > 0)
+                                @php $totalHours = 0; $totalReleased = 0; @endphp
+                                @foreach($weeklyTimesheetEntries as $entry)
+                                @php
+                                    $totalHours += floatval($entry->hour ?? 0);
+                                    $totalReleased += floatval($entry->released_hour ?? 0);
+                                @endphp
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            @if($entry->profile_picture)
+                                                <img src="{{ asset($entry->profile_picture) }}" alt="{{ $entry->first_name }}" class="rounded-circle me-2" width="32" height="32">
+                                            @else
+                                                <div class="rounded-circle me-2" style="width: 32px; height: 32px; background: #7d6bb2; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px;">
+                                                    {{ strtoupper(substr($entry->first_name, 0, 1)) }}
+                                                </div>
+                                            @endif
+                                            <span class="tt-nm">{{ $entry->first_name }} {{ $entry->last_name }}</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ $entry->date ? date('d-M-Y', strtotime($entry->date)) : 'N/A' }}</td>
+                                    <td class="text-center">{{ $entry->hour ?? 0 }}</td>
+                                    <td class="text-center">
+                                        @if($entry->release_status == 1)
+                                            <span class="text-success">{{ $entry->released_hour ?? 0 }}</span>
+                                        @else
+                                            <span class="text-muted">Pending</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                                <tr class="table-light fw-bold">
+                                    <td colspan="2" class="text-end">Total</td>
+                                    <td class="text-center">{{ number_format($totalHours, 2) }}</td>
+                                    <td class="text-center">{{ number_format($totalReleased, 2) }}</td>
+                                </tr>
+                            @else
+                            <tr>
+                                <td colspan="4" class="text-center">No timesheet entries booked</td>
+                            </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+
+                {{-- Timer-based entries --}}
+                @if($task->relationLoaded('timesheets') && $task->timesheets && count($task->timesheets) > 0)
+                <h6 class="fw-bold mb-3 px-2 pt-2">Timer Entries</h6>
                 <div class="table-responsive tt-table">
                     <table class="table table-bordered align-middle tt-table-table">
                         <thead class="table-light">
@@ -214,7 +275,6 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if($task->relationLoaded('timesheets') && $task->timesheets && count($task->timesheets) > 0)
                                 @foreach($task->timesheets as $timesheet)
                                 <tr>
                                     <td>
@@ -244,14 +304,10 @@
                                     <td class="text-center">{{ $timesheet->total_hours ?? '0' }} hrs</td>
                                 </tr>
                                 @endforeach
-                            @else
-                            <tr>
-                                <td colspan="4" class="text-center">No timesheet entries yet</td>
-                            </tr>
-                            @endif
                         </tbody>
                     </table>
                 </div>
+                @endif
             </div>
         </div>
 

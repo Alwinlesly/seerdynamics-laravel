@@ -15,8 +15,8 @@ class LoginController extends Controller
     {
         if (Auth::check()) {
             $user = Auth::user();
-            // Customer users (group 4) go directly to tickets
-            if ($user->inGroup(4)) {
+            // Consultants (group 2) and customer users (group 4) go directly to tickets
+            if ($user->inGroup(2) || $user->inGroup(4)) {
                 return redirect()->route('tasks.index');
             }
             return redirect()->route('projects.index');
@@ -70,7 +70,7 @@ class LoginController extends Controller
         return response()->json([
             'error' => false,
             'message' => 'Login successful!',
-            'redirect' => $user->inGroup(4) ? route('tasks.index') : route('projects.index'),
+            'redirect' => ($user->inGroup(2) || $user->inGroup(4)) ? route('tasks.index') : route('projects.index'),
         ]);
     }
     public function logout()

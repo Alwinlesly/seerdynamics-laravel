@@ -15,6 +15,7 @@ use App\Models\MediaFile;
 use App\Services\EmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class TaskController extends Controller
@@ -48,7 +49,11 @@ class TaskController extends Controller
             $data['projects'] = Project::whereHas('tasks.users', function($q) use ($user) {
                 $q->where('user_id', $user->id);
             })->get();
-        } elseif (!$user->inGroup(1)) { // Not admin
+        } elseif ($user->inGroup(2)) { // Consultant - show projects where they have assigned tasks
+            $data['projects'] = Project::whereHas('tasks.users', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->get();
+        } elseif (!$user->inGroup(1)) { // Other non-admin
             $data['projects'] = Project::whereHas('users', function($q) use ($user) {
                 $q->where('user_id', $user->id);
             })->get();
@@ -56,8 +61,8 @@ class TaskController extends Controller
             $data['projects'] = Project::all();
         }
         
-        // Get customers for filter (admins only)
-        if ($user->inGroup(1)) {
+        // Get customers for filter (admins and consultants)
+        if ($user->inGroup(1) || $user->inGroup(2)) {
             $data['customers'] = User::whereHas('groups', function($q) {
                 $q->where('groups.id', 3); // Customer group ID
             })->get();
@@ -257,9 +262,34 @@ class TaskController extends Controller
                 }
             }
 
+            // Fetch weekly timesheet entries booked against this task
+            $weeklyTimesheetEntries = collect();
+            try {
+                $weeklyTimesheetEntries = DB::table('weekly_timesheet_project_task_details as wptd')
+                    ->join('weekly_timesheet_project_task_hours as wpth', 'wpth.timesheet_project_task_id', '=', 'wptd.id')
+                    ->join('weekly_timesheet as wt', 'wt.id', '=', 'wptd.timesheet_id')
+                    ->join('users as u', 'u.id', '=', 'wt.user_id')
+                    ->where('wptd.task_id', $task->id)
+                    ->where('wpth.status', 1)
+                    ->where('wptd.status', 1)
+                    ->select(
+                        'u.first_name',
+                        'u.last_name',
+                        'u.profile_picture',
+                        'wpth.date',
+                        'wpth.hour',
+                        'wpth.released_hour',
+                        'wpth.release_status'
+                    )
+                    ->orderBy('wpth.date', 'desc')
+                    ->get();
+            } catch (\Exception $e) {
+                \Log::warning('Could not load weekly timesheet entries: ' . $e->getMessage());
+            }
+
             // Return partial view for AJAX requests (modal)
             if (request()->ajax()) {
-                $html = view('tasks.partials.detail-content', ['task' => $task])->render();
+                $html = view('tasks.partials.detail-content', ['task' => $task, 'weeklyTimesheetEntries' => $weeklyTimesheetEntries])->render();
                 return response()->json([
                     'error' => false,
                     'html' => $html

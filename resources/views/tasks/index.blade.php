@@ -25,6 +25,7 @@
                             </span>
                         </div>
 
+                        @if(!auth()->user()->inGroup(2))
                         <button class="btn btn-create" data-bs-toggle="modal" data-bs-target="#createTaskModal">
                             <span>
                                 <svg fill="#fff" width="20px" height="20px" viewBox="0 0 24 24" id="plus"
@@ -35,6 +36,7 @@
                                 </svg>
                             </span> Create
                         </button>
+                        @endif
                     </div>
                 </div>
 
@@ -285,6 +287,7 @@
                                         <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                                     </svg>
                                 </span>
+                                @if(!auth()->user()->inGroup(2))
                                 <span class="delete-task" data-id="${task.id}" style="cursor: pointer;">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <polyline points="3 6 5 6 21 6"/>
@@ -294,6 +297,7 @@
                                         <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                                     </svg>
                                 </span>
+                                @endif
                             </div>
                         </td>
                     </tr>

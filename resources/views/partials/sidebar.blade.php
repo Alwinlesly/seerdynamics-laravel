@@ -1,8 +1,8 @@
 <aside class="col-lg-3 pt-3 sidebar">
     {{-- Dashboard: all authenticated users --}}
 
-    {{-- Projects: admin, consultant, or customer admin (groups 1,2,3) --}}
-    @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(2) || auth()->user()->inGroup(3))
+    {{-- Projects: admin or customer admin (groups 1,3) --}}
+    @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(3))
     <div class="nav-item mb-3">
         <a class="menu-sidebar--item {{ request()->routeIs('projects.*') ? 'active-menu' : '' }}" href="{{ route('projects.index') }}">
             Projects
@@ -54,7 +54,9 @@
             <a class="menu-sidebar--item {{ request()->routeIs('timesheets.release') ? 'active-menu' : '' }}" href="{{ route('timesheets.release') }}">Timesheet Release</a>
             @endif
 
+            @if(auth()->user()->inGroup(1))
             <a class="menu-sidebar--item {{ request()->routeIs('support-statement.*') ? 'active-menu' : '' }}" href="{{ route('support-statement.index') }}">Support Statement</a>
+            @endif
         </div>
     </div>
     @endif
