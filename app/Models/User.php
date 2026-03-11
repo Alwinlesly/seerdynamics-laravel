@@ -50,6 +50,31 @@ class User extends Authenticatable
     {
         return $this->groups()->where('groups.id', $groupId)->exists();
     }
+
+    /**
+     * Get parent company ID for customer admin users.
+     * Mirrors CI: Users_model::get_cuser_parent_company_id()
+     */
+    public function getCuserParentCompanyId()
+    {
+        return $this->cuser_customer ?: null;
+    }
+
+    /**
+     * Get all client IDs that this customer user should see data for.
+     * For group 3 users: returns [own_id, parent_company_id]
+     * This matches CI logic: WHERE (p.client_id=$user_id or p.client_id=$cuser_customer_id)
+     */
+    public function getCustomerClientIds()
+    {
+        $ids = [$this->id];
+        $parentId = $this->getCuserParentCompanyId();
+        if ($parentId && $parentId != $this->id) {
+            $ids[] = $parentId;
+        }
+        return $ids;
+    }
+
     public function getRememberTokenName()
     {
         return 'remember_code';

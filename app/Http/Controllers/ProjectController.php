@@ -37,8 +37,9 @@ class ProjectController extends Controller
         $data['project_statuses'] = \App\Models\ProjectStatus::all();
         
         // Get projects for filter (based on user role)
-        if ($user->inGroup(3)) { // Customer
-            $data['projects'] = Project::where('client_id', $user->id)->get();
+        if ($user->inGroup(3)) { // Customer - show projects for this user and parent company
+            $clientIds = $user->getCustomerClientIds();
+            $data['projects'] = Project::whereIn('client_id', $clientIds)->where('is_visible', 0)->get();
         } elseif (!$user->inGroup(1)) { // Not admin
             $data['projects'] = Project::whereHas('users', function($q) use ($user) {
                 $q->where('user_id', $user->id);
@@ -60,8 +61,9 @@ class ProjectController extends Controller
             $query = Project::query();
             
             // Apply role-based filtering
-            if ($user->inGroup(3)) { // Customer
-                $query->where('client_id', $user->id);
+            if ($user->inGroup(3)) { // Customer - show projects for this user and parent company
+                $clientIds = $user->getCustomerClientIds();
+                $query->whereIn('client_id', $clientIds)->where('is_visible', 0);
             } elseif (!$user->inGroup(1)) { // Not admin
                 $query->whereHas('users', function($q) use ($user) {
                     $q->where('user_id', $user->id);
@@ -168,11 +170,12 @@ class ProjectController extends Controller
         $project = Project::with(['customer', 'tasks', 'users', 'files'])->findOrFail($id);
         
         // Check access
-        if ($user->inGroup(3) && $project->client_id != $user->id) {
-            abort(403, 'Access Denied');
-        }
-        
-        if (!$user->inGroup(1) && !$user->inGroup(3)) {
+        if ($user->inGroup(3)) {
+            $clientIds = $user->getCustomerClientIds();
+            if (!in_array($project->client_id, $clientIds)) {
+                abort(403, 'Access Denied');
+            }
+        } elseif (!$user->inGroup(1)) {
             if (!$project->users->contains('id', $user->id)) {
                 abort(403, 'Access Denied');
             }
@@ -214,11 +217,12 @@ class ProjectController extends Controller
             $project = Project::with(['projectStatus', 'users'])->findOrFail($id);
             
             // Check access
-            if ($user->inGroup(3) && $project->client_id != $user->id) {
-                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
-            }
-            
-            if (!$user->inGroup(1) && !$user->inGroup(3)) {
+            if ($user->inGroup(3)) {
+                $clientIds = $user->getCustomerClientIds();
+                if (!in_array($project->client_id, $clientIds)) {
+                    return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+                }
+            } elseif (!$user->inGroup(1)) {
                 if (!$project->users->contains('id', $user->id)) {
                     return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
                 }

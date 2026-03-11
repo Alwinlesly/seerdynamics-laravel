@@ -47,6 +47,15 @@ class SupportStatementController extends Controller
                 ->groupBy('p.id', 'p.project_id', 'p.title')
                 ->orderByDesc('created_at')
                 ->get();
+        } elseif ($user->inGroup(3)) {
+            // Customer admin: projects where client_id is user or parent company
+            $clientIds = $user->getCustomerClientIds();
+            $projects = DB::table('projects as p')
+                ->whereIn('p.client_id', $clientIds)
+                ->where('p.is_visible', 0)
+                ->select('p.id', 'p.project_id', 'p.title')
+                ->orderByDesc('p.created')
+                ->get();
         } else {
             // Non-admin: projects where user is assigned
             $projects = DB::table('project_users as pu')
@@ -333,20 +342,12 @@ class SupportStatementController extends Controller
     }
     
     /**
-     * Get the parent company ID for a customer user
+     * Get the parent company ID for a customer user.
+     * Mirrors CI: Users_model::get_cuser_parent_company_id()
      */
     private function getCuserParentCompanyId($userId)
     {
         $user = User::find($userId);
-        if ($user && $user->company) {
-            // Try to find parent company user
-            $parent = User::where('company', $user->company)
-                ->join('users_groups', 'users.id', '=', 'users_groups.user_id')
-                ->where('users_groups.group_id', 3)
-                ->select('users.id')
-                ->first();
-            return $parent ? $parent->id : $userId;
-        }
-        return $userId;
+        return ($user && $user->cuser_customer) ? $user->cuser_customer : $userId;
     }
 }

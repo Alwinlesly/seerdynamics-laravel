@@ -18,8 +18,8 @@ class CustomerUserController extends Controller
     {
         $user = auth()->user();
         
-        // Only admins can access customer users
-        if (!$user->inGroup(1)) {
+        // Admins and customer admins (group 3) can access customer users
+        if (!$user->inGroup(1) && !$user->inGroup(3)) {
             abort(403, 'Access Denied');
         }
 
@@ -36,6 +36,11 @@ class CustomerUserController extends Controller
             'customers' => $customers,
         ];
 
+        // For group 3 users, pass the parent company ID for scoping
+        if ($user->inGroup(3)) {
+            $data['cuser_company_id'] = $user->getCuserParentCompanyId();
+        }
+
         return view('customer-users.index', $data);
     }
 
@@ -47,8 +52,8 @@ class CustomerUserController extends Controller
         try {
             $user = auth()->user();
             
-            // Only admins can view customer users
-            if (!$user->inGroup(1)) {
+            // Admins and customer admins (group 3) can view customer users
+            if (!$user->inGroup(1) && !$user->inGroup(3)) {
                 return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
             }
 
@@ -57,6 +62,16 @@ class CustomerUserController extends Controller
                 ->join('users_groups', 'users.id', '=', 'users_groups.user_id')
                 ->whereIn('users_groups.group_id', [3, 4]) // Customer and customer user groups
                 ->where('users.is_company', 0); // Only individual users, not companies
+
+            // For group 3 users, scope to their parent company's users
+            if ($user->inGroup(3)) {
+                $parentCompanyId = $user->getCuserParentCompanyId();
+                if ($parentCompanyId) {
+                    $query->where('users.cuser_customer', $parentCompanyId);
+                } else {
+                    $query->where('users.cuser_customer', $user->id);
+                }
+            }
 
             // Search filter
             if ($request->filled('search')) {

@@ -41,8 +41,9 @@ class TaskController extends Controller
         $data['issue_types'] = IssueType::all();
         
         // Get projects for filter (based on user role)
-        if ($user->inGroup(3)) { // Customer
-            $data['projects'] = Project::where('client_id', $user->id)->get();
+        if ($user->inGroup(3)) { // Customer - show projects for this user and parent company
+            $clientIds = $user->getCustomerClientIds();
+            $data['projects'] = Project::whereIn('client_id', $clientIds)->where('is_visible', 0)->get();
         } elseif (!$user->inGroup(1)) { // Not admin
             $data['projects'] = Project::whereHas('users', function($q) use ($user) {
                 $q->where('user_id', $user->id);
@@ -73,9 +74,10 @@ class TaskController extends Controller
             $query = Task::query();
             
             // Role-based filtering
-            if ($user->inGroup(3)) { // Customer
-                $query->whereHas('project', function($q) use ($user) {
-                    $q->where('client_id', $user->id);
+            if ($user->inGroup(3)) { // Customer - show tasks for projects belonging to user or parent company
+                $clientIds = $user->getCustomerClientIds();
+                $query->whereHas('project', function($q) use ($clientIds) {
+                    $q->whereIn('client_id', $clientIds)->where('is_visible', 0);
                 });
             } elseif (!$user->inGroup(1)) { // Not admin - show assigned tasks
                 $query->whereHas('users', function($q) use ($user) {
@@ -241,11 +243,14 @@ class TaskController extends Controller
             }
             
             // Check access
-            if ($user->inGroup(3) && $task->project && $task->project->client_id != $user->id) {
-                if (request()->ajax()) {
-                    return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+            if ($user->inGroup(3) && $task->project) {
+                $clientIds = $user->getCustomerClientIds();
+                if (!in_array($task->project->client_id, $clientIds)) {
+                    if (request()->ajax()) {
+                        return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+                    }
+                    abort(403, 'Access Denied');
                 }
-                abort(403, 'Access Denied');
             }
 
             // Return partial view for AJAX requests (modal)
@@ -291,8 +296,11 @@ class TaskController extends Controller
             $task = Task::with(['taskStatus', 'users', 'taskPriority', 'issueType'])->findOrFail($id);
             
             // Check access
-            if ($user->inGroup(3) && $task->project && $task->project->client_id != $user->id) {
-                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+            if ($user->inGroup(3) && $task->project) {
+                $clientIds = $user->getCustomerClientIds();
+                if (!in_array($task->project->client_id, $clientIds)) {
+                    return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+                }
             }
             
             if (!$user->inGroup(1) && !$user->inGroup(3)) {
@@ -558,8 +566,9 @@ class TaskController extends Controller
             
             // Apply same filters as getTasks
             if ($user->inGroup(3)) {
-                $query->whereHas('project', function($q) use ($user) {
-                    $q->where('client_id', $user->id);
+                $clientIds = $user->getCustomerClientIds();
+                $query->whereHas('project', function($q) use ($clientIds) {
+                    $q->whereIn('client_id', $clientIds)->where('is_visible', 0);
                 });
             } elseif (!$user->inGroup(1)) {
                 $query->whereHas('users', function($q) use ($user) {

@@ -1,6 +1,8 @@
 <aside class="col-lg-3 pt-3 sidebar">
-    {{-- Projects: admin or consultant (groups 1,2) --}}
-    @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(2))
+    {{-- Dashboard: all authenticated users --}}
+
+    {{-- Projects: admin, consultant, or customer admin (groups 1,2,3) --}}
+    @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(2) || auth()->user()->inGroup(3))
     <div class="nav-item mb-3">
         <a class="menu-sidebar--item {{ request()->routeIs('projects.*') ? 'active-menu' : '' }}" href="{{ route('projects.index') }}">
             Projects
@@ -8,8 +10,8 @@
     </div>
     @endif
 
-    {{-- Tickets: admin or consultant (groups 1,2) --}}
-    @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(2))
+    {{-- Tickets: admin, consultant, or customer admin (groups 1,2,3) --}}
+    @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(2) || auth()->user()->inGroup(3))
     <div class="nav-item mb-3">
         <a class="menu-sidebar--item {{ request()->routeIs('tasks.*') ? 'active-menu' : '' }}" href="{{ route('tasks.index') }}">
             Tickets
