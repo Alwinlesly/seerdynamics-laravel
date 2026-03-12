@@ -128,6 +128,7 @@ class CustomerUserController extends Controller
                     'mobile' => $cuser->phone ?: 'N/A',
                     'company' => $parentCustomer ? $parentCustomer->company : 'N/A',
                     'company_id' => $cuser->cuser_customer,
+                    'group_id' => $cuser->group_id ?? 4,
                     'project_count' => $projectCount,
                     'status' => $cuser->active ? 'Active' : 'Inactive',
                     'profile_picture' => $profilePicture,
@@ -157,7 +158,7 @@ class CustomerUserController extends Controller
         try {
             $user = auth()->user();
             
-            if (!$user->inGroup(1)) {
+            if (!$user->inGroup(1) && !$user->inGroup(3)) {
                 return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
             }
 
@@ -168,6 +169,7 @@ class CustomerUserController extends Controller
                 'password' => 'required|min:6',
                 'phone' => 'nullable|string|max:50',
                 'cuser_customer' => 'required|exists:users,id',
+                'groups' => 'required|in:3,4', // Must be customer or customer user
             ]);
 
             // Create customer user
@@ -185,10 +187,10 @@ class CustomerUserController extends Controller
                 'ip_address' => $request->ip(),
             ]);
 
-            // Assign to customer user group (group_id = 4)
+            // Assign to requested customer role
             DB::table('users_groups')->insert([
                 'user_id' => $customerUser->id,
-                'group_id' => 4,
+                'group_id' => $request->groups,
             ]);
 
             // Send welcome email
@@ -229,7 +231,7 @@ class CustomerUserController extends Controller
                 ->whereIn('users_groups.group_id', [3, 4])
                 ->where('users.id', $id)
                 ->where('users.is_company', 0)
-                ->select('users.*')
+                ->select('users.*', 'users_groups.group_id')
                 ->firstOrFail();
 
             return response()->json([
@@ -263,20 +265,24 @@ class CustomerUserController extends Controller
             $request->validate([
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
-                'email' => 'required|email|unique:users,email,' . $id,
                 'phone' => 'nullable|string|max:50',
-                'cuser_customer' => 'required|exists:users,id',
+                'groups' => 'required|in:3,4', // Only allow customer or customer user roles
             ]);
 
-            // Update customer user
+            // Update customer user details
             $customerUser->update([
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
-                'email' => $request->email,
                 'phone' => $request->phone,
-                'cuser_customer' => $request->cuser_customer,
                 'active' => $request->input('active', $customerUser->active),
             ]);
+
+            // Update user group if changed
+            if ($request->has('groups')) {
+                DB::table('users_groups')
+                    ->where('user_id', $customerUser->id)
+                    ->update(['group_id' => $request->groups]);
+            }
 
             // Update password if provided
             if ($request->filled('password')) {

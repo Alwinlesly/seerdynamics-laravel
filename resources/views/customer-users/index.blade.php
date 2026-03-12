@@ -228,9 +228,12 @@ $(document).ready(function() {
                     $('#editCustomerUserId').val(cuser.id);
                     $('#editFirstName').val(cuser.first_name);
                     $('#editLastName').val(cuser.last_name);
-                    $('#editEmail').val(cuser.email);
                     $('#editMobile').val(cuser.phone);
-                    $('#editCuserCustomer').val(cuser.cuser_customer);
+                    if (cuser.group_id) {
+                        $('#editRole').val(cuser.group_id);
+                    }
+                    $('#editPassword').val('');
+                    $('#editConfirmPassword').val('');
                     $('#editActive').prop('checked', cuser.active == 1);
                     
                     $('#editCustomerUserModal').modal('show');

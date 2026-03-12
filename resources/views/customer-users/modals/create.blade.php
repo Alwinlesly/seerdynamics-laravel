@@ -13,6 +13,7 @@
         <form id="createCustomerUserForm">
             @csrf
             
+            @if(!auth()->user()->inGroup(3))
             <!-- Row 1: Project Client (Full Width) -->
             <div class="row mb-3">
                 <div class="col-md-12">
@@ -28,7 +29,7 @@
                 </div>
             </div>
 
-            <!-- Row 2: Role (Full Width) - Hidden, default to group 4 -->
+            <!-- Row 2: Role (Full Width) -->
             <div class="row mb-3">
                 <div class="col-md-12">
                     <div>
@@ -40,6 +41,10 @@
                     </div>
                 </div>
             </div>
+            @else
+                <input type="hidden" name="cuser_customer" id="cuserCustomer" value="{{ $cuser_company_id ?? auth()->user()->getCuserParentCompanyId() }}">
+                <input type="hidden" name="groups" value="4">
+            @endif
 
             <!-- Row 3: First Name / Last Name -->
             <div class="row mb-3">
@@ -123,6 +128,7 @@ $(document).ready(function() {
             password: password,
             phone: $('#mobile').val(),
             cuser_customer: $('#cuserCustomer').val(),
+            groups: $('[name="groups"]').val(), // captures from select or hidden input
             active: 1 // Default to active
         };
         

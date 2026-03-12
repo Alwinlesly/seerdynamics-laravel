@@ -30,8 +30,8 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <div>
-                                <label for="editEmail" class="form-label">Email <span class="req">*</span></label>
-                                <input type="email" class="form-control" id="editEmail" name="email" required>
+                                <label for="editMobile" class="form-label">Mobile</label>
+                                <input type="text" class="form-control" id="editMobile" name="phone">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -45,18 +45,16 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <div>
-                                <label for="editMobile" class="form-label">Mobile</label>
-                                <input type="text" class="form-control" id="editMobile" name="phone">
+                                <label for="editConfirmPassword" class="form-label">Confirm Password</label>
+                                <input type="password" class="form-control" id="editConfirmPassword" name="password_confirm">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div>
-                                <label for="editCuserCustomer" class="form-label">Customer <span class="req">*</span></label>
-                                <select class="form-select" id="editCuserCustomer" name="cuser_customer" required>
-                                    <option value="" disabled>Select customer</option>
-                                    @foreach($customers as $customer)
-                                        <option value="{{ $customer->id }}">{{ $customer->company ?? $customer->first_name . ' ' . $customer->last_name }}</option>
-                                    @endforeach
+                                <label for="editRole" class="form-label">Role <span class="req">*</span></label>
+                                <select class="form-select" id="editRole" name="groups" required>
+                                    <option value="3">Customer</option>
+                                    <option value="4">Customer User</option>
                                 </select>
                             </div>
                         </div>
@@ -89,21 +87,29 @@
 $('#editCustomerUserForm').on('submit', function(e) {
     e.preventDefault();
     
+    // Validate password match if password is provided
+    const password = $('#editPassword').val();
+    const confirmPassword = $('#editConfirmPassword').val();
+    
+    if (password && password !== confirmPassword) {
+        showToast('warning', 'Password and confirm password do not match!');
+        return;
+    }
+
     const cuserId = $('#editCustomerUserId').val();
     const formData = {
         _token: '{{ csrf_token() }}',
         _method: 'PUT',
         first_name: $('#editFirstName').val(),
         last_name: $('#editLastName').val(),
-        email: $('#editEmail').val(),
         phone: $('#editMobile').val(),
-        cuser_customer: $('#editCuserCustomer').val(),
+        groups: $('#editRole').val(),
         active: $('#editActive').is(':checked') ? 1 : 0
     };
     
     // Add password only if provided
-    if ($('#editPassword').val()) {
-        formData.password = $('#editPassword').val();
+    if (password) {
+        formData.password = password;
     }
     
     $.ajax({
