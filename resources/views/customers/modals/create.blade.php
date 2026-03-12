@@ -106,6 +106,7 @@
   </div>
 </div>
 
+@push('scripts')
 <script>
 $(document).ready(function() {
     // Show selected file name
@@ -151,3 +152,4 @@ $(document).ready(function() {
     });
 });
 </script>
+@endpush

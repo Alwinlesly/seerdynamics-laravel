@@ -99,6 +99,7 @@
   </div>
 </div>
 
+@push('scripts')
 <script>
 $(document).ready(function() {
     // Handle form submission
@@ -152,3 +153,4 @@ $(document).ready(function() {
     });
 });
 </script>
+@endpush

@@ -84,6 +84,7 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
 $('#editCustomerUserForm').on('submit', function(e) {
     e.preventDefault();
@@ -124,3 +125,4 @@ $('#editCustomerUserForm').on('submit', function(e) {
     });
 });
 </script>
+@endpush

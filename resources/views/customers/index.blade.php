@@ -224,15 +224,23 @@ $(document).ready(function() {
                 if (!response.error) {
                     const customer = response.customer;
                     $('#editCustomerId').val(customer.id);
-                    $('#editFirstName').val(customer.first_name);
-                    $('#editLastName').val(customer.last_name);
-                    $('#editEmail').val(customer.email);
                     $('#editCompany').val(customer.company);
-                    $('#editPhone').val(customer.phone);
-                    $('#editContactPerson').val(customer.contact_person_desg);
+                    $('#editCustomerCode').val(customer.customer_code);
+                    $('#editContactPerson').val(customer.first_name);
+                    $('#editDesignation').val(customer.contact_person_desg);
                     $('#editAddress').val(customer.address);
                     $('#editCountry').val(customer.country);
+                    $('#editEmail').val(customer.email);
                     $('#editActive').prop('checked', customer.active == 1);
+                    
+                    // Hidden fields mapping (last_name/phone)
+                    $('#editLastName').val(customer.last_name || '');
+                    $('#editPhone').val(customer.phone || '');
+                    
+                    // Reset password and logo
+                    $('#editPassword').val('');
+                    $('#editLogoFileName').val('');
+                    $('#editCustomerLogo').val('');
                     
                     $('#editCustomerModal').modal('show');
                 } else {

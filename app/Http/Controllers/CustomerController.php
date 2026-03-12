@@ -144,12 +144,13 @@ class CustomerController extends Controller
             }
 
             $request->validate([
-                'company' => 'required|string|max:255',
-                'customer_code' => 'required|string|max:100',
+                'company' => 'nullable|string|max:255',
+                'customer_code' => 'nullable|string|max:100',
                 'first_name' => 'required|string|max:255',
-                'contact_person_desg' => 'required|string|max:255',
-                'address' => 'required|string',
-                'country' => 'required',
+                'last_name' => 'nullable|string|max:255',
+                'contact_person_desg' => 'nullable|string|max:255',
+                'address' => 'nullable|string',
+                'country' => 'nullable',
                 'email' => 'required|email|unique:users,email',
                 'profile' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
@@ -169,6 +170,7 @@ class CustomerController extends Controller
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name ?? '',
                 'email' => $request->email,
+                'username' => $request->email,
                 'password' => Hash::make($request->password ?? 'thisisdefcust'),
                 'phone' => $request->phone ?? '',
                 'profile' => $profileFilename,
@@ -316,21 +318,25 @@ class CustomerController extends Controller
 
             $request->validate([
                 'first_name' => 'required|string|max:255',
-                'last_name' => 'required|string|max:255',
+                'last_name' => 'nullable|string|max:255',
                 'email' => 'required|email|unique:users,email,' . $id,
                 'password' => 'nullable|min:6',
                 'company' => 'nullable|string|max:255',
+                'customer_code' => 'nullable|string|max:100',
                 'phone' => 'nullable|string|max:50',
                 'address' => 'nullable|string',
                 'contact_person_desg' => 'nullable|string|max:255',
                 'country' => 'nullable|string|max:100',
+                'profile' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
             $updateData = [
                 'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
+                'last_name' => $request->last_name ?? '',
                 'email' => $request->email,
+                'username' => $request->email,
                 'company' => $request->company,
+                'customer_code' => $request->customer_code,
                 'phone' => $request->phone,
                 'address' => $request->address,
                 'contact_person_desg' => $request->contact_person_desg,
@@ -341,6 +347,19 @@ class CustomerController extends Controller
             // Only update password if provided
             if ($request->filled('password')) {
                 $updateData['password'] = Hash::make($request->password);
+            }
+            
+            // Handle profile image upload
+            if ($request->hasFile('profile')) {
+                $file = $request->file('profile');
+                $profileFilename = time() . '_' . $file->getClientOriginalName();
+                $file->move(public_path('uploads/profile'), $profileFilename);
+                $updateData['profile'] = $profileFilename;
+                
+                // Optional: Delete old profile picture if exists
+                if ($customer->profile && file_exists(public_path('uploads/profile/' . $customer->profile))) {
+                    @unlink(public_path('uploads/profile/' . $customer->profile));
+                }
             }
 
             $customer->update($updateData);

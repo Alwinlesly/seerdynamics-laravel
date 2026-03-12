@@ -24,6 +24,7 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
 $('#confirmDeleteCustomerUser').on('click', function() {
     const cuserId = $('#deleteCustomerUserId').val();
@@ -50,3 +51,4 @@ $('#confirmDeleteCustomerUser').on('click', function() {
     });
 });
 </script>
+@endpush
