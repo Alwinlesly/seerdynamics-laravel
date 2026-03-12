@@ -77,7 +77,12 @@ class CustomerController extends Controller
                 $query->orderBy("users.{$sortBy}", $sortOrder);
             }
 
-            $customers = $query->get();
+            // Pagination
+            $limit = $request->limit ?? 20;
+            $offset = $request->offset ?? 0;
+
+            $total = $query->count();
+            $customers = $query->skip($offset)->take($limit)->get();
 
 
             // Format data for response
@@ -119,6 +124,7 @@ class CustomerController extends Controller
 
             return response()->json([
                 'error' => false,
+                'total' => $total,
                 'customers' => $formattedCustomers
             ]);
 

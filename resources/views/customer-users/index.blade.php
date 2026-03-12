@@ -98,6 +98,9 @@
 
 @push('scripts')
 <script>
+let currentPage = 1;
+const limit = 20;
+
 $(document).ready(function() {
     let searchTimeout;
     
@@ -108,8 +111,21 @@ $(document).ready(function() {
     $('#searchInput').on('input', function() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(function() {
+            currentPage = 1;
             loadCustomerUsers();
         }, 500);
+    });
+    
+    $('#prevBtn').on('click', function() {
+        if (currentPage > 1) {
+            currentPage--;
+            loadCustomerUsers();
+        }
+    });
+    
+    $('#nextBtn').on('click', function() {
+        currentPage++;
+        loadCustomerUsers();
     });
     
     // Load customer users function
@@ -121,11 +137,16 @@ $(document).ready(function() {
             method: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',
-                search: searchValue
+                search: searchValue,
+                limit: limit,
+                offset: (currentPage - 1) * limit
             },
             success: function(response) {
                 if (!response.error) {
                     renderCustomerUsers(response.customer_users);
+                    if (response.total !== undefined) {
+                        updatePagination(response.total);
+                    }
                 } else {
                     showError('Failed to load customer users');
                 }
@@ -134,6 +155,15 @@ $(document).ready(function() {
                 showError('Failed to load customer users');
             }
         });
+    }
+    
+    function updatePagination(total) {
+        const totalPages = Math.ceil(total / limit) || 1;
+        $('.current-total').text(currentPage);
+        $('#totalCustomerUsers').text(totalPages);
+        
+        $('#prevBtn').prop('disabled', currentPage === 1);
+        $('#nextBtn').prop('disabled', currentPage >= totalPages);
     }
     
     // Render customer users table
@@ -147,11 +177,8 @@ $(document).ready(function() {
                     <td colspan="7" class="text-center py-4">No customer users found</td>
                 </tr>
             `);
-            $('#totalCustomerUsers').text('0');
             return;
         }
-        
-        $('#totalCustomerUsers').text(customerUsers.length);
         
         customerUsers.forEach(function(cuser) {
             const initials = getInitials(cuser.first_name, cuser.last_name);

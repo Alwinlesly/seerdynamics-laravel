@@ -103,7 +103,12 @@ class CustomerUserController extends Controller
                 $query->orderBy("users.{$sortBy}", $sortOrder);
             }
 
-            $customerUsers = $query->get();
+            // Pagination
+            $limit = $request->limit ?? 20;
+            $offset = $request->offset ?? 0;
+
+            $total = $query->count();
+            $customerUsers = $query->skip($offset)->take($limit)->get();
 
             // Format data for response
             $formattedCustomerUsers = $customerUsers->map(function ($cuser) {
@@ -138,6 +143,7 @@ class CustomerUserController extends Controller
 
             return response()->json([
                 'error' => false,
+                'total' => $total,
                 'customer_users' => $formattedCustomerUsers
             ]);
 

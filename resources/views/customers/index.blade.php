@@ -96,6 +96,9 @@
 
 @push('scripts')
 <script>
+let currentPage = 1;
+const limit = 20;
+
 $(document).ready(function() {
     let searchTimeout;
     
@@ -106,8 +109,21 @@ $(document).ready(function() {
     $('#searchInput').on('input', function() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(function() {
+            currentPage = 1;
             loadCustomers();
         }, 500);
+    });
+    
+    $('#prevBtn').on('click', function() {
+        if (currentPage > 1) {
+            currentPage--;
+            loadCustomers();
+        }
+    });
+    
+    $('#nextBtn').on('click', function() {
+        currentPage++;
+        loadCustomers();
     });
     
     // Load customers function
@@ -119,11 +135,16 @@ $(document).ready(function() {
             method: 'POST',
             data: {
                 _token: '{{ csrf_token() }}',
-                search: searchValue
+                search: searchValue,
+                limit: limit,
+                offset: (currentPage - 1) * limit
             },
             success: function(response) {
                 if (!response.error) {
                     renderCustomers(response.customers);
+                    if (response.total !== undefined) {
+                        updatePagination(response.total);
+                    }
                 } else {
                     showError('Failed to load customers');
                 }
@@ -132,6 +153,15 @@ $(document).ready(function() {
                 showError('Failed to load customers');
             }
         });
+    }
+    
+    function updatePagination(total) {
+        const totalPages = Math.ceil(total / limit) || 1;
+        $('.current-total').text(currentPage);
+        $('#totalCustomers').text(totalPages);
+        
+        $('#prevBtn').prop('disabled', currentPage === 1);
+        $('#nextBtn').prop('disabled', currentPage >= totalPages);
     }
     
     // Render customers table
@@ -145,11 +175,8 @@ $(document).ready(function() {
                     <td colspan="7" class="text-center py-4">No customers found</td>
                 </tr>
             `);
-            $('#totalCustomers').text('0');
             return;
         }
-        
-        $('#totalCustomers').text(customers.length);
         
         customers.forEach(function(customer) {
             const customerCode = customer.customer_code || 'N/A';
