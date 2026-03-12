@@ -549,12 +549,19 @@
         $('#edit_title').val(task.title);
         $('#edit_description').val(task.description);
         $('#edit_project_id').val(task.project_id);
-        $('#edit_issue_type_id').val(task.issue_type_id);
+        $('#edit_issue_type_id').val(task.issue_type);
         $('#edit_service').val(task.service);
-        $('#edit_priority_id').val(task.priority_id);
-        $('#edit_issue_date').val(task.issue_date);
+        $('#edit_priority_id').val(task.priority);
+        $('#edit_issue_date').val(task.due_date);
         $('#edit_status').val(task.status_title);
         $('#edit_additional_mail').val(task.additional_mail);
+        
+        // Populate Select2 fields for users
+        if (task.users) {
+            $('#edit_users, #edit_cusers').val(task.users).trigger('change');
+        } else {
+            $('#edit_users, #edit_cusers').val(null).trigger('change');
+        }
     }
 </script>
 @endpush

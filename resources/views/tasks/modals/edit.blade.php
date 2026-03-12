@@ -41,14 +41,19 @@
                             <select class="form-select" id="edit_issue_type_id" name="issue_type_id" required>
                                 <option value="">Select issue type</option>
                                 @foreach($issue_types as $type)
-                                    <option value="{{ $type->id }}">{{ $type->title }}</option>
+                                    <option value="{{ $type->issue_type_id }}">{{ $type->issue_type }}</option>
                                 @endforeach
                             </select>
                         </div>
 
                         <div class="col-md-4">
-                            <label for="edit_service" class="form-label">Select service</label>
-                            <input type="text" class="form-control" id="edit_service" name="service">
+                            <label for="edit_service" class="form-label">Select service <span class="req">*</span></label>
+                            <select class="form-select" id="edit_service" name="service" required>
+                                <option value="">Select Service</option>
+                                @foreach($services as $service)
+                                    <option value="{{ $service->service_id ?? $service->service }}">{{ $service->service }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
 
@@ -94,12 +99,29 @@
                         </div>
                     </div>
 
+                    @if(auth()->user()->inGroup(1))
                     <div class="mb-3">
-                        <label for="edit_assigned_consultants" class="form-label">Assign consultants</label>
-                        <input type="text" class="form-control" id="edit_assigned_consultants" name="assigned_consultants" placeholder="Comma-separated user IDs">
+                        <label for="edit_users" class="form-label">Assign Consultants <i class="fas fa-question-circle" data-bs-toggle="tooltip" data-bs-placement="right" title="Assign task to the users who will work on this task. Only these users are able to see this task."></i></label>
+                        <select name="users[]" id="edit_users" class="form-control select2" multiple>     
+                            @foreach($consultant_users as $consultant)
+                            <option value="{{ $consultant->id }}">{{ $consultant->first_name }} {{ $consultant->last_name }}</option>
+                            @endforeach
+                        </select>
                     </div>
+                    @endif
 
-                    <div class="mb-4 add-mail">
+                    @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(3) || auth()->user()->inGroup(4))
+                    <div class="mb-3">
+                        <label for="edit_cusers" class="form-label">Assign Users</label>
+                        <select name="users[]" id="edit_cusers" class="form-control select2" multiple>      
+                            @foreach($other_cusers as $cuser)
+                                @if($cuser->id != auth()->id())
+                                <option value="{{ $cuser->id }}">{{ $cuser->first_name }} {{ $cuser->last_name }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif                    <div class="mb-4 add-mail">
                         <div class="add-mail-left">
                             <label for="edit_additional_mail" class="form-label">Additional mail</label>
                             <input type="email" class="form-control" id="edit_additional_mail" name="additional_mail" placeholder="example@example.com">
@@ -115,7 +137,60 @@
 </div>
 
 @push('scripts')
+<style>
+/* Base input styling matching Codeigniter components.css */
+.select2-container .select2-selection--multiple, .select2-container .select2-selection--single {
+    box-sizing: border-box;
+    cursor: pointer;
+    display: block;
+    min-height: 42px;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-user-select: none;
+    outline: none;
+    background-color: #fdfdff;
+    border-color: #e4e6fc;
+}
+
+/* Modal z-index fix */
+.select2-container--open {
+    z-index: 9999999;
+}
+
+/* Tag styles */
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #e52165;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 5px 10px;
+    margin-top: 5px;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    color: #fff;
+    margin-right: 5px;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #f8f9fa;
+    background: transparent;
+}
+.select2-container--default .select2-results__option[aria-selected=true],
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #e52165;
+    color: #fff;
+}
+</style>
 <script>
+    // Initialize select2
+    $(document).ready(function() {
+        $('#edit_users, #edit_cusers').select2({
+            width: '100%',
+            placeholder: "Select users",
+            allowClear: true
+        });
+    });
+
     // Show file name when file is selected
     $('#edit_attachment').on('change', function() {
         const fileName = this.files[0] ? this.files[0].name : '';
@@ -147,9 +222,16 @@
                     showToast('error', 'Error: ' + response.message);
                 }
             },
-            error: function(error) {
-                console.error('Error updating task:', error);
-                showToast('error', 'Error updating task');
+            error: function(xhr) {
+                console.error('Error updating task:', xhr);
+                let errorMessage = 'Error updating task';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                    if (xhr.responseJSON.errors) {
+                        errorMessage += '<br>' + Object.values(xhr.responseJSON.errors).map(e => e.join(', ')).join('<br>');
+                    }
+                }
+                showToast('error', errorMessage);
             }
         });
     });

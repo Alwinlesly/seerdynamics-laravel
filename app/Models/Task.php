@@ -32,7 +32,6 @@ class Task extends Model
         'created',
         'created_by',
         'issue_type',
-        'ticket_id',
         'service',
         'attachment',
         'additional_mail',
