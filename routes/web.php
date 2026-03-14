@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TimesheetApprovalController;
 
 // Authentication Routes
 Route::get('/', [LoginController::class, 'index'])->name('login');
@@ -26,6 +27,11 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('projects')->group(function () {
         Route::get('/', [ProjectController::class, 'index'])->name('projects.index');
         Route::post('/list', [ProjectController::class, 'getProjects'])->name('projects.list');
+        Route::get('/timesheetapprovals', [TimesheetApprovalController::class, 'index'])->name('timesheets.approvals');
+        Route::get('/timesheetapprovals/list', [TimesheetApprovalController::class, 'list'])->name('timesheets.approvals.list');
+        Route::post('/timesheetapprovals/details', [TimesheetApprovalController::class, 'details'])->name('timesheets.approvals.details');
+        Route::post('/timesheetapprovals/{id}/approve', [TimesheetApprovalController::class, 'approve'])->name('timesheets.approvals.approve');
+        Route::post('/timesheetapprovals/{id}/reject', [TimesheetApprovalController::class, 'reject'])->name('timesheets.approvals.reject');
         Route::get('/{id}/edit', [ProjectController::class, 'edit'])->name('projects.edit');
         Route::get('/{id}', [ProjectController::class, 'show'])->name('projects.show');
         Route::post('/store', [ProjectController::class, 'store'])->name('projects.store');

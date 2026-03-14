@@ -50,6 +50,8 @@
         <div class="submenu {{ $timesheetActive ? 'show' : '' }}" id="timesheetSubmenu">
             <a class="menu-sidebar--item {{ request()->routeIs('timesheets.index') || request()->routeIs('timesheets.create') ? 'active-menu' : '' }}" href="{{ route('timesheets.index') }}">Timesheet</a>
 
+            <a class="menu-sidebar--item {{ request()->routeIs('timesheets.approvals*') ? 'active-menu' : '' }}" href="{{ route('timesheets.approvals') }}">Timesheet Approval</a>
+
             @if(auth()->user()->inGroup(1))
             <a class="menu-sidebar--item {{ request()->routeIs('timesheets.release') ? 'active-menu' : '' }}" href="{{ route('timesheets.release') }}">Timesheet Release</a>
             @endif
