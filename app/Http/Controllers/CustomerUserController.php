@@ -199,11 +199,16 @@ class CustomerUserController extends Controller
                 'group_id' => $request->groups,
             ]);
 
-            // Send welcome email
-            try {
-                EmailService::sendWelcomeEmail($customerUser->email);
-            } catch (\Exception $emailEx) {
-                \Log::error('Welcome email failed for customer user: ' . $emailEx->getMessage());
+            // Send welcome email after response to reduce request latency
+            if (config('mail.send_welcome') && !empty($customerUser->email)) {
+                $customerUserEmail = $customerUser->email;
+                app()->terminating(function () use ($customerUserEmail) {
+                    try {
+                        EmailService::sendWelcomeEmail($customerUserEmail);
+                    } catch (\Exception $emailEx) {
+                        \Log::error('Welcome email failed for customer user: ' . $emailEx->getMessage());
+                    }
+                });
             }
 
             return response()->json([

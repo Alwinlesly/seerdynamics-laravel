@@ -132,7 +132,9 @@ $(document).ready(function() {
                     $('#createCustomerModal').modal('hide');
                     $('#createCustomerForm')[0].reset();
                     $('#logoFileName').val('');
-                    loadCustomers();
+                    if (typeof window.loadCustomers === 'function') {
+                        window.loadCustomers(true);
+                    }
                     showToast('success', 'Customer created successfully!');
                 } else {
                     showToast('error', 'Error creating customer: ' + response.message);

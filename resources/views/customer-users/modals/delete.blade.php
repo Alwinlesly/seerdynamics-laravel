@@ -38,7 +38,9 @@ $('#confirmDeleteCustomerUser').on('click', function() {
         success: function(response) {
             if (!response.error) {
                 $('#deleteCustomerUserModal').modal('hide');
-                loadCustomerUsers();
+                if (typeof window.loadCustomerUsers === 'function') {
+                    window.loadCustomerUsers();
+                }
                 showToast('success', 'Customer user deleted successfully!');
             } else {
                 showToast('error', 'Error deleting customer user: ' + response.message);

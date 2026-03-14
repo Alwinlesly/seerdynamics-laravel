@@ -154,6 +154,14 @@ $(document).ready(function() {
             }
         });
     }
+
+    // Expose globally for modal scripts (create/edit/delete)
+    window.loadCustomers = function(resetPage = false) {
+        if (resetPage) {
+            currentPage = 1;
+        }
+        loadCustomers();
+    };
     
     function updatePagination(total) {
         const totalPages = Math.ceil(total / limit) || 1;

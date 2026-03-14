@@ -155,7 +155,9 @@ $(document).ready(function() {
             success: function(response) {
                 if (!response.error) {
                     $('#editCustomerModal').modal('hide');
-                    loadCustomers();
+                    if (typeof window.loadCustomers === 'function') {
+                        window.loadCustomers();
+                    }
                     
                     // Show success message
                     showToast('success', response.message || 'Customer updated successfully!');

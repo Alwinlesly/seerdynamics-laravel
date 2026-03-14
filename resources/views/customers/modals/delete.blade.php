@@ -43,7 +43,9 @@ $(document).ready(function() {
             success: function(response) {
                 if (!response.error) {
                     $('#deleteCustomerModal').modal('hide');
-                    loadCustomers();
+                    if (typeof window.loadCustomers === 'function') {
+                        window.loadCustomers();
+                    }
                     
                     // Show success message
                     showToast('success', response.message);

@@ -119,7 +119,9 @@ $('#editCustomerUserForm').on('submit', function(e) {
         success: function(response) {
             if (!response.error) {
                 $('#editCustomerUserModal').modal('hide');
-                loadCustomerUsers();
+                if (typeof window.loadCustomerUsers === 'function') {
+                    window.loadCustomerUsers();
+                }
                 showToast('success', 'Customer user updated successfully!');
             } else {
                 showToast('error', 'Error updating customer user: ' + response.message);

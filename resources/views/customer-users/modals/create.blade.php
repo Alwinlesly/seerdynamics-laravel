@@ -140,7 +140,9 @@ $(document).ready(function() {
                 if (!response.error) {
                     $('#createCustomerUserModal').modal('hide');
                     $('#createCustomerUserForm')[0].reset();
-                    loadCustomerUsers();
+                    if (typeof window.loadCustomerUsers === 'function') {
+                        window.loadCustomerUsers(true);
+                    }
                     showToast('success', 'Customer user created successfully!');
                 } else {
                     showToast('error', 'Error creating customer user: ' + response.message);

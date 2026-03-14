@@ -195,11 +195,16 @@ class CustomerController extends Controller
                 'group_id' => 3,
             ]);
 
-            // Send welcome email
-            try {
-                EmailService::sendWelcomeEmail($customer->email);
-            } catch (\Exception $emailEx) {
-                \Log::error('Welcome email failed for customer: ' . $emailEx->getMessage());
+            // Send welcome email after response to reduce request latency
+            if (config('mail.send_welcome') && !empty($customer->email)) {
+                $customerEmail = $customer->email;
+                app()->terminating(function () use ($customerEmail) {
+                    try {
+                        EmailService::sendWelcomeEmail($customerEmail);
+                    } catch (\Exception $emailEx) {
+                        \Log::error('Welcome email failed for customer: ' . $emailEx->getMessage());
+                    }
+                });
             }
 
             return response()->json([
