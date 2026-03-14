@@ -300,6 +300,55 @@
         $('#nextBtn').prop('disabled', currentPage >= totalPages);
     }
 
+    function escapeHtml(text) {
+        return $('<div>').text(text ?? '').html();
+    }
+
+    function renderConsultantRow(consultant) {
+        var fullName = (consultant.first_name || '') + ' ' + (consultant.last_name || '');
+        var avatarHtml = consultant.profile
+            ? '<img src="' + consultant.profile + '" alt="' + escapeHtml(consultant.first_name || 'Consultant') + '" class="rounded-circle profile-img">'
+            : '<div class="rounded-circle profile-img d-flex align-items-center justify-content-center" style="width:50px;height:50px;background:#513998;color:#fff;font-weight:600;">' + escapeHtml(consultant.short_name || '') + '</div>';
+
+        return `
+            <tr class="consultant-row">
+                <td>
+                    <div class="d-flex align-items-center gap-2 con_name">
+                        ${avatarHtml}
+                        <span class="fw-medium">${escapeHtml(fullName.trim())}</span>
+                    </div>
+                </td>
+                <td>${escapeHtml(consultant.email || '')}</td>
+                <td>${escapeHtml(consultant.phone || 'No Number')}</td>
+                <td>${escapeHtml(consultant.role || 'Consultant')}</td>
+                <td>${consultant.projects_count ?? 0}</td>
+                <td>${consultant.tasks_count ?? 0}</td>
+                <td><span class="${consultant.active == 1 ? 'status-active' : 'status-incative'}">${consultant.active == 1 ? 'Active' : 'Inactive'}</span></td>
+                @if(auth()->user()->inGroup(1))
+                <td>
+                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                        <span style="cursor:pointer;" onclick="editConsultant(${consultant.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </span>
+                        <span style="cursor:pointer;" onclick="deleteConsultant(${consultant.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+                            </svg>
+                        </span>
+                    </div>
+                </td>
+                @endif
+            </tr>
+        `;
+    }
+
     $('#prevBtn').on('click', function() {
         if (currentPage > 1) { currentPage--; updatePagination(); }
     });
@@ -332,7 +381,19 @@
                 if (!response.error) {
                     showToast('success', response.message || 'Consultant created successfully!');
                     $('#createModal').modal('hide');
-                    setTimeout(function() { location.reload(); }, 1500);
+                    $('#createForm')[0].reset();
+
+                    // Remove "no data" placeholder row if present
+                    $('#consultantsTableBody tr').filter(function() {
+                        return $(this).find('td').length === 1 && $(this).text().toLowerCase().indexOf('no consultants found') > -1;
+                    }).remove();
+
+                    if (response.consultant) {
+                        $('#consultantsTableBody').prepend(renderConsultantRow(response.consultant));
+                    }
+
+                    currentPage = 1;
+                    updatePagination();
                 } else {
                     showToast('error', response.message);
                 }

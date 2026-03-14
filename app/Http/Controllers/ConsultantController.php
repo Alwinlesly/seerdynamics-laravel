@@ -26,6 +26,7 @@ class ConsultantController extends Controller
             ->join('users_groups', 'users.id', '=', 'users_groups.user_id')
             ->where('users_groups.group_id', 2)
             ->select('users.*', 'users_groups.group_id')
+            ->orderBy('users.id', 'desc')
             ->get();
         
         $systemUsers = [];
@@ -106,7 +107,20 @@ class ConsultantController extends Controller
             
             return response()->json([
                 'error' => false,
-                'message' => 'Consultant created successfully'
+                'message' => 'Consultant created successfully',
+                'consultant' => [
+                    'id' => $newUser->id,
+                    'first_name' => $newUser->first_name,
+                    'last_name' => $newUser->last_name ?? '',
+                    'email' => $newUser->email,
+                    'phone' => !empty($newUser->phone) ? $newUser->phone : 'No Number',
+                    'active' => 1,
+                    'short_name' => mb_substr($newUser->first_name, 0, 1) . mb_substr($newUser->last_name ?? '', 0, 1),
+                    'role' => 'Consultant',
+                    'projects_count' => 0,
+                    'tasks_count' => 0,
+                    'profile' => '',
+                ]
             ]);
         } catch (\Exception $e) {
             return response()->json([
