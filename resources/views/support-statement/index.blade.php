@@ -151,7 +151,7 @@
                             <div class="ct-body">
                                 <form id="supportStatementForm">
                                     <div class="row g-3 mb-3">
-                                        @if(!auth()->user()->inGroup(3))
+                                        @if(auth()->user()->inGroup(1))
                                         <div class="col-md-12">
                                             <select class="form-select" id="customerFilter">
                                                 <option value="">Customer</option>
@@ -162,7 +162,7 @@
                                             <span class="validation-error" id="customer_error"></span>
                                         </div>
                                         @else
-                                        <input type="hidden" id="customerFilter" value="{{ $customer_id }}">
+                                        <input type="hidden" id="customerFilter" value="{{ $customer_id ?? '' }}">
                                         @endif
 
                                         <div class="col-md-6">
@@ -289,6 +289,10 @@
                         projectSelect.append('<option value="' + project.id + '">' + project.title + ' (' + project.project_id + ')</option>');
                     });
                 }
+            },
+            error: function(xhr) {
+                console.error('Error loading projects:', xhr);
+                showToast('error', xhr.responseJSON?.message || 'Failed to load projects');
             }
         });
     }

@@ -16,20 +16,24 @@ class SupportStatementController extends Controller
     {
         $user = auth()->user();
         
-        // Only admins and consultants with project_view permission
-        if ($user->inGroup(3)) {
-            // For customers: get their parent company id
-            $customerId = $this->getCuserParentCompanyId($user->id);
-            $customers = collect(); // customers won't see customer dropdown
-        } else {
+        // Old flow parity:
+        // - Admin: customer dropdown visible
+        // - Non-admin: customer hidden and prefilled (if customer admin), otherwise empty
+        $isAdmin = $user->inGroup(1);
+        $isCustomerAdmin = $user->inGroup(3);
+
+        if ($isAdmin) {
             $customerId = null;
-            // Get customers list (group 3 users with company)
             $customers = User::join('users_groups', 'users.id', '=', 'users_groups.user_id')
                 ->where('users_groups.group_id', 3)
                 ->whereNotNull('users.company')
                 ->where('users.company', '!=', '')
                 ->select('users.id', 'users.company')
+                ->orderBy('users.company')
                 ->get();
+        } else {
+            $customers = collect();
+            $customerId = $isCustomerAdmin ? ($this->getCuserParentCompanyId($user->id) ?: $user->id) : null;
         }
         
         // Get project types
@@ -37,18 +41,13 @@ class SupportStatementController extends Controller
             ->select('id', 'title')
             ->get();
         
-        // Get projects based on user role
-        if ($user->inGroup(1)) {
-            // Admin: all projects
-            $projects = DB::table('project_users as pu')
-                ->join('projects as p', 'pu.project_id', '=', 'p.id')
+        // Get projects based on old support statement behavior
+        if ($isAdmin) {
+            $projects = DB::table('projects as p')
                 ->select('p.id', 'p.project_id', 'p.title')
-                ->selectRaw('MAX(p.created) as created_at')
-                ->groupBy('p.id', 'p.project_id', 'p.title')
-                ->orderByDesc('created_at')
+                ->orderByDesc('p.created')
                 ->get();
-        } elseif ($user->inGroup(3)) {
-            // Customer admin: projects where client_id is user or parent company
+        } elseif ($isCustomerAdmin) {
             $clientIds = $user->getCustomerClientIds();
             $projects = DB::table('projects as p')
                 ->whereIn('p.client_id', $clientIds)
@@ -57,14 +56,12 @@ class SupportStatementController extends Controller
                 ->orderByDesc('p.created')
                 ->get();
         } else {
-            // Non-admin: projects where user is assigned
             $projects = DB::table('project_users as pu')
                 ->join('projects as p', 'pu.project_id', '=', 'p.id')
                 ->where('pu.user_id', $user->id)
                 ->select('p.id', 'p.project_id', 'p.title')
-                ->selectRaw('MAX(p.created) as created_at')
-                ->groupBy('p.id', 'p.project_id', 'p.title')
-                ->orderByDesc('created_at')
+                ->groupBy('p.id', 'p.project_id', 'p.title', 'p.created')
+                ->orderByDesc('p.created')
                 ->get();
         }
         
@@ -316,17 +313,39 @@ class SupportStatementController extends Controller
     public function getProjectsByCustomer(Request $request)
     {
         try {
-            $query = Project::query();
-            
-            if ($request->filled('customerid')) {
-                $query->where('client_id', $request->customerid);
+            $user = auth()->user();
+            $isAdmin = $user->inGroup(1);
+            $isCustomerAdmin = $user->inGroup(3);
+
+            $query = DB::table('projects as p')->select('p.id', 'p.project_id', 'p.title');
+
+            if ($isAdmin) {
+                if ($request->filled('customerid')) {
+                    $query->where('p.client_id', $request->customerid);
+                }
+            } elseif ($isCustomerAdmin) {
+                $clientIds = $user->getCustomerClientIds();
+                $query->whereIn('p.client_id', $clientIds)->where('p.is_visible', 0);
+                if ($request->filled('customerid')) {
+                    $query->where('p.client_id', $request->customerid);
+                }
+            } else {
+                $query->join('project_users as pu', 'pu.project_id', '=', 'p.id')
+                    ->where('pu.user_id', $user->id);
+                // For consultant flow, customer filter is optional and should not block if empty/invalid.
+                if ($request->filled('customerid')) {
+                    $query->where('p.client_id', $request->customerid);
+                }
             }
-            
+
             if ($request->filled('projecttype')) {
-                $query->where('ptype', $request->projecttype);
+                $query->where('p.ptype', $request->projecttype);
             }
-            
-            $projects = $query->select('id', 'project_id', 'title')->get();
+
+            $projects = $query
+                ->groupBy('p.id', 'p.project_id', 'p.title', 'p.created')
+                ->orderByDesc('p.created')
+                ->get();
             
             return response()->json([
                 'error' => false,
@@ -348,6 +367,6 @@ class SupportStatementController extends Controller
     private function getCuserParentCompanyId($userId)
     {
         $user = User::find($userId);
-        return ($user && $user->cuser_customer) ? $user->cuser_customer : $userId;
+        return ($user && $user->cuser_customer) ? $user->cuser_customer : null;
     }
 }
