@@ -7,12 +7,18 @@
             </div>
 
             <div class="modal-body create-ticket-body">
-                <form id="createProjectForm" enctype="multipart/form-data">
+                <form id="createProjectForm" action="{{ route('projects.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Project title <span class="req">*</span></label>
-                        <input type="text" class="form-control" name="title" required>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Project ID <span class="req">*</span></label>
+                            <input type="text" class="form-control" name="project_id" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Project title <span class="req">*</span></label>
+                            <input type="text" class="form-control" name="title" required>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -21,8 +27,8 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Services offered <span class="req">*</span></label>
-                        <input type="text" class="form-control" name="services_offered" required>
+                        <label class="form-label">Services offered</label>
+                        <input type="text" class="form-control" name="services" placeholder="Service1, Service2, ...">
                     </div>
 
                     <div class="row g-3 mb-3">
@@ -47,7 +53,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-3">
                             <label class="form-label">Project value</label>
-                            <input type="number" step="0.01" class="form-control" name="project_value">
+                            <input type="number" step="0.01" class="form-control" name="budget">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Project currency</label>
@@ -55,15 +61,15 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Total hours</label>
-                            <input type="number" step="0.01" class="form-control" name="total_hours">
+                            <input type="number" step="0.01" class="form-control" name="hours">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Contract copy</label>
                             <div class="chat-input py-0">
                                 <div class="left-ci d-flex align-items-center gap-0">
                                     <input type="text" class="form-control" id="contractFileName" placeholder="File" readonly>
-                                    <input type="file" id="contractFile" name="contract_copy" class="d-none">
-                                    <label for="contractFile" class="upload-btn mb-0" style="cursor: pointer;">
+                                    <input type="file" id="createContractFile" name="contract_copy" class="d-none">
+                                    <label for="createContractFile" class="upload-btn mb-0" style="cursor: pointer;">
                                         <i class="bi bi-upload"></i>
                                     </label>
                                 </div>
@@ -76,17 +82,16 @@
                             <label class="form-label">Status <span class="req">*</span></label>
                             <select class="form-select" name="status" required>
                                 @foreach($project_statuses as $status)
-                                <option value="{{ $status->title }}">{{ $status->title }}</option>
+                                <option value="{{ $status->id }}">{{ $status->title }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-lg-3">
                             <label class="form-label">Project type</label>
-                            <select class="form-select" name="project_type">
-                                <option value="">Select type</option>
-                                <option value="Support">Support</option>
-                                <option value="Implementation">Implementation</option>
-                                <option value="Consulting">Consulting</option>
+                            <select class="form-select" name="ptype" required>
+                                @foreach($project_types as $ptype)
+                                <option value="{{ $ptype->id }}">{{ $ptype->title }}</option>
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-lg-6">
@@ -102,9 +107,21 @@
 
                     <div class="row mb-3">
                         <div class="col-lg-6">
+                            <label class="form-label">Project manager</label>
+                            <select class="form-select" name="project_manager">
+                                <option value="">Select manager</option>
+                                @foreach($consultants as $consultant)
+                                <option value="{{ $consultant->id }}">{{ $consultant->first_name }} {{ $consultant->last_name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-lg-6">
                             <label class="form-label">Assign consultants</label>
                             <input type="text" class="form-control" name="assigned_consultants" placeholder="Comma separated user IDs">
                         </div>
+                    </div>
+
+                    <div class="row mb-3">
                         <div class="col-lg-6 col-pm">
                             <div>
                                 <div class="form-check mb-0">
@@ -114,7 +131,7 @@
                                     </label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="is_not_visible_to_customer" id="visibleToCustomer">
+                                    <input class="form-check-input" type="checkbox" name="is_visible" id="visibleToCustomer">
                                     <label class="form-check-label" for="visibleToCustomer">
                                         Is it not visible to the customer?
                                     </label>
@@ -133,13 +150,13 @@
 
 <script>
 // Display file name when selected
-$('#contractFile').on('change', function() {
+$('#createContractFile').on('change', function() {
     const fileName = $(this).val().split('\\').pop();
     $('#contractFileName').val(fileName);
 });
 
 // Create project form submission
-$('#createProjectForm').on('submit', function(e) {
+$(document).on('submit', '#createProjectForm', function(e) {
     e.preventDefault();
     
     const formData = new FormData(this);
@@ -160,7 +177,7 @@ $('#createProjectForm').on('submit', function(e) {
             }
         },
         error: function(xhr) {
-            showToast('error', 'Error creating project');
+            showToast('error', xhr.responseJSON?.message || 'Error creating project');
         }
     });
 });

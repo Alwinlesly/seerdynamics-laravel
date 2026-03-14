@@ -57,7 +57,7 @@
                     <select class="form-select" id="statusFilter">
                         <option value="">Status</option>
                         @foreach($project_statuses as $status)
-                        <option value="{{ $status->title }}">{{ $status->title }}</option>
+                        <option value="{{ $status->id }}">{{ $status->title }}</option>
                         @endforeach
                     </select>
                     <select class="form-select" id="sortFilter">
@@ -278,19 +278,22 @@ $(document).on('click', '.edit-project', function() {
                 
                 // Populate form fields
                 $('#editProjectId').val(project.id);
+                $('#editProjectForm').attr('action', '/projects/' + project.id);
+                $('#edit_project_id').val(project.project_id);
                 $('#edit_title').val(project.title);
                 $('#edit_description').val(project.description);
-                $('#edit_services_offered').val(project.services_offered);
+                $('#edit_services').val(project.services || '');
                 $('#edit_starting_date').val(project.starting_date);
                 $('#edit_ending_date').val(project.ending_date);
                 $('#edit_actual_starting_date').val(project.actual_starting_date || '');
                 $('#edit_actual_ending_date').val(project.actual_ending_date || '');
-                $('#edit_project_value').val(project.project_value || '');
+                $('#edit_budget').val(project.budget || '');
                 $('#edit_project_currency').val(project.project_currency || '');
-                $('#edit_total_hours').val(project.total_hours || '');
-                $('#edit_status').val(project.status_title);
-                $('#edit_project_type').val(project.project_type || '');
+                $('#edit_hours').val(project.hours || '');
+                $('#edit_status').val(project.status);
+                $('#edit_ptype').val(project.ptype || '');
                 $('#edit_client_id').val(project.client_id);
+                $('#edit_project_manager').val(project.manager_id || '');
                 
                 // Handle assigned consultants
                 if (project.assigned_users && project.assigned_users.length > 0) {
@@ -299,11 +302,15 @@ $(document).on('click', '.edit-project', function() {
                 
                 // Checkboxes
                 $('#editDefaultProject').prop('checked', project.is_default == 1);
-                $('#editVisibleToCustomer').prop('checked', project.is_visible_to_customer == 0);
-                
+                $('#editVisibleToCustomer').prop('checked', project.is_visible == 1);
+
                 // Contract file display
                 if (project.contract_copy) {
-                    $('#editContractFileName').val(project.contract_copy.split('/').pop());
+                    $('#editContractFileName').val(project.contract_copy);
+                    $('#editContractLink').html(`<a href="/assets/uploads/projects/${project.contract_copy}" target="_blank">${project.contract_copy}</a>`);
+                } else {
+                    $('#editContractFileName').val('');
+                    $('#editContractLink').html('');
                 }
                 
                 // Show modal

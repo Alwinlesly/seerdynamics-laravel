@@ -41,14 +41,14 @@
                                     <p class="mb-1">{{ $project->description }}</p>
                                 </div>
                                 <small class="text-muted d-block mb-1">Services:</small>
-                                <p class="mb-3">{{ $project->services_offered ?? 'N/A' }}</p>
+                                <p class="mb-3">{{ $services_offered ?: 'N/A' }}</p>
 
                                 <div class="d-flex flex-wrap gap-2">
-                                    @if($project->project_value)
-                                    <span class="badge aed-badge">{{ $project->project_value }} {{ $project->project_currency }}</span>
+                                    @if(!empty($project->budget))
+                                    <span class="badge aed-badge">{{ $project->budget }} {{ $project->project_currency }}</span>
                                     @endif
-                                    <span class="badge support-bg">{{ $project->project_type ?? 'Project' }}</span>
-                                    <span class="badge {{ strtolower(str_replace(' ', '-', $project->status)) }}-badge">{{ $project->status }}</span>
+                                    <span class="badge support-bg">{{ $project_type_title ?? 'Project' }}</span>
+                                    <span class="badge {{ strtolower(str_replace(' ', '-', $project->projectStatus->title ?? 'open')) }}-badge">{{ $project->projectStatus->title ?? 'Open' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -279,23 +279,31 @@ function editProject(id) {
             if (!response.error) {
                 const p = response.project;
                 $('#editProjectId').val(p.id);
+                $('#editProjectForm').attr('action', '/projects/' + p.id);
+                $('#edit_project_id').val(p.project_id);
                 $('#edit_title').val(p.title);
                 $('#edit_description').val(p.description);
-                $('#edit_services_offered').val(p.services_offered);
+                $('#edit_services').val(p.services || '');
                 $('#edit_starting_date').val(p.starting_date);
                 $('#edit_ending_date').val(p.ending_date);
                 $('#edit_actual_starting_date').val(p.actual_starting_date);
                 $('#edit_actual_ending_date').val(p.actual_ending_date);
-                $('#edit_project_value').val(p.project_value);
+                $('#edit_budget').val(p.budget);
                 $('#edit_project_currency').val(p.project_currency);
-                $('#edit_total_hours').val(p.total_hours);
-                $('#edit_project_type').val(p.project_type);
+                $('#edit_hours').val(p.hours);
+                $('#edit_ptype').val(p.ptype);
+                $('#edit_project_manager').val(p.manager_id || '');
                 $('#edit_client_id').val(p.client_id);
-                $('#edit_status option').each(function() {
-                    $(this).prop('selected', $(this).val() === p.status_title);
-                });
+                $('#edit_status').val(p.status);
                 $('#editDefaultProject').prop('checked', p.is_default);
-                $('#editVisibleToCustomer').prop('checked', !p.is_visible_to_customer);
+                $('#editVisibleToCustomer').prop('checked', p.is_visible == 1);
+                if (p.contract_copy) {
+                    $('#editContractFileName').val(p.contract_copy);
+                    $('#editContractLink').html(`<a href="/assets/uploads/projects/${p.contract_copy}" target="_blank">${p.contract_copy}</a>`);
+                } else {
+                    $('#editContractFileName').val('');
+                    $('#editContractLink').html('');
+                }
                 $('#editProjectModal').modal('show');
             } else {
                 showToast('error', response.message || 'Failed to load project data');

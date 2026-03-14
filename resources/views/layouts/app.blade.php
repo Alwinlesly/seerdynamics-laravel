@@ -47,6 +47,22 @@
     
     <!-- Custom JS -->
     <script src="{{ asset('assets/js/scripts.js') }}"></script>
+
+    @if(session('success'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            showToast('success', @json(session('success')));
+        });
+    </script>
+    @endif
+
+    @if(session('error'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            showToast('error', @json(session('error')));
+        });
+    </script>
+    @endif
     
     @stack('scripts')
 </body>

@@ -8,7 +8,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Models\MediaFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class ProjectController extends Controller
 {
@@ -30,11 +30,12 @@ class ProjectController extends Controller
         })->get();
         
         $data['consultants'] = User::whereHas('groups', function($q) {
-            $q->whereIn('groups.id', [1, 2]);
+            $q->where('groups.id', 2);
         })->get();
         
         // Get project statuses for filter
         $data['project_statuses'] = \App\Models\ProjectStatus::all();
+        $data['project_types'] = DB::table('project_type')->orderBy('id')->get();
         
         // Get projects for filter (based on user role)
         if ($user->inGroup(3)) { // Customer - show projects for this user and parent company
@@ -86,9 +87,7 @@ class ProjectController extends Controller
             
             // Status filter (by title from project_status table)
             if ($request->status) {
-                $query->whereHas('projectStatus', function($q) use ($request) {
-                    $q->where('title', $request->status);
-                });
+                $query->where('status', (int) $request->status);
             }
             
             // Customer filter
@@ -139,7 +138,7 @@ class ProjectController extends Controller
                     'tickets' => $project->completed_tasks . '/' . $project->tasks->count(),
                     'from' => $project->starting_date ? $project->starting_date->format('d-M-Y') : 'N/A',
                     'to' => $project->ending_date ? $project->ending_date->format('d-M-Y') : 'N/A',
-                    'total_hours' => $project->total_hours ?? 0,
+                    'total_hours' => $project->hours ?? 0,
                     'status' => $project->projectStatus->title ?? 'Open',
                 ];
             });
@@ -186,6 +185,8 @@ class ProjectController extends Controller
             'current_user' => $user,
             'project' => $project,
         ];
+        $data['services_offered'] = DB::table('services')->where('project', $project->id)->pluck('service')->implode(', ');
+        $data['project_type_title'] = DB::table('project_type')->where('id', $project->ptype)->value('title');
         
         // Calculate stats
         $data['total_tickets'] = $project->tasks->count();
@@ -203,6 +204,10 @@ class ProjectController extends Controller
             $q->where('groups.id', 3);
         })->get();
         $data['project_statuses'] = \App\Models\ProjectStatus::all();
+        $data['project_types'] = DB::table('project_type')->orderBy('id')->get();
+        $data['consultants'] = User::whereHas('groups', function($q) {
+            $q->where('groups.id', 2);
+        })->get();
         
         return view('projects.show', $data);
     }
@@ -231,21 +236,24 @@ class ProjectController extends Controller
             // Format project data for the form
             $projectData = [
                 'id' => $project->id,
+                'project_id' => $project->project_id,
                 'title' => $project->title,
                 'description' => $project->description,
-                'services_offered' => $project->services_offered,
+                'services' => DB::table('services')->where('project', $project->id)->pluck('service')->implode(', '),
                 'starting_date' => $project->starting_date ? date('Y-m-d', strtotime($project->starting_date)) : '',
                 'ending_date' => $project->ending_date ? date('Y-m-d', strtotime($project->ending_date)) : '',
                 'actual_starting_date' => $project->actual_starting_date ? date('Y-m-d', strtotime($project->actual_starting_date)) : '',
                 'actual_ending_date' => $project->actual_ending_date ? date('Y-m-d', strtotime($project->actual_ending_date)) : '',
-                'project_value' => $project->project_value,
+                'budget' => $project->budget,
                 'project_currency' => $project->project_currency,
-                'total_hours' => $project->total_hours,
+                'hours' => $project->hours,
+                'status' => $project->status,
                 'status_title' => $project->projectStatus->title ?? '',
-                'project_type' => $project->project_type,
+                'ptype' => $project->ptype,
                 'client_id' => $project->client_id,
                 'is_default' => $project->is_default,
-                'is_visible_to_customer' => $project->is_visible_to_customer,
+                'is_visible' => $project->is_visible,
+                'manager_id' => $project->manager_id,
                 'contract_copy' => $project->contract_copy,
                 'assigned_users' => $project->users->pluck('id')->toArray(),
             ];
@@ -270,54 +278,109 @@ class ProjectController extends Controller
     public function store(Request $request)
     {
         if (!auth()->user()->inGroup(1) && !permissions('project_create')) {
+            if (!$request->ajax() && !$request->wantsJson()) {
+                return redirect()->route('projects.index')->with('error', 'Access Denied');
+            }
             return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
         }
-        
-        $validated = $request->validate([
+
+        $validator = Validator::make($request->all(), [
+            'project_id' => 'required|string|max:30|unique:projects,project_id',
             'title' => 'required|string|max:255',
-            'description' => 'required',
+            'description' => 'required|string',
             'starting_date' => 'required|date',
-            'ending_date' => 'required|date|after:starting_date',
+            'ending_date' => 'required|date|after_or_equal:starting_date',
             'actual_starting_date' => 'nullable|date',
             'actual_ending_date' => 'nullable|date',
-            'status' => 'required|string',
-            'client_id' => 'required|exists:users,id',
-            'project_type' => 'nullable|string',
-            'project_value' => 'nullable|numeric',
-            'project_currency' => 'nullable|string',
-            'total_hours' => 'nullable|numeric',
-            'services_offered' => 'nullable|string',
+            'status' => 'required|integer|exists:project_status,id',
+            'client_id' => 'required|integer|exists:users,id',
+            'ptype' => 'required|integer|exists:project_type,id',
+            'budget' => 'nullable|numeric',
+            'project_currency' => 'nullable|string|max:20',
+            'hours' => 'nullable|numeric',
+            'services' => 'nullable|string',
+            'project_manager' => 'nullable|integer|exists:users,id',
+            'contract_copy' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc|max:10240',
         ]);
-        
-        // Auto-generate project ID
-        $latest = Project::latest('id')->first();
-        $nextId = ($latest->id ?? 0) + 1;
-        $validated['project_id'] = 'PRJ-CR-' . date('Y') . '-' . str_pad($nextId, 3, '0', STR_PAD_LEFT);
-        
-        $validated['created_by'] = auth()->id();
-        $validated['is_default'] = $request->has('is_default');
-        $validated['is_visible_to_customer'] = !$request->has('is_not_visible_to_customer');
-        
-        // Handle file upload (contract copy)
+
+        if ($validator->fails()) {
+            if (!$request->ajax() && !$request->wantsJson()) {
+                return redirect()->route('projects.index')
+                    ->withErrors($validator)
+                    ->withInput()
+                    ->with('error', $validator->errors()->first());
+            }
+            return response()->json([
+                'error' => true,
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        $data = [
+            'project_id' => $validated['project_id'],
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'client_id' => (int) $validated['client_id'],
+            'created_by' => auth()->id(),
+            'starting_date' => $validated['starting_date'],
+            'ending_date' => $validated['ending_date'],
+            'actual_starting_date' => $validated['actual_starting_date'] ?? $validated['starting_date'],
+            'actual_ending_date' => $validated['actual_ending_date'] ?? $validated['ending_date'],
+            'status' => (int) $validated['status'],
+            'budget' => array_key_exists('budget', $validated) ? (string) ($validated['budget'] ?? '') : '',
+            'ptype' => (int) $validated['ptype'],
+            'hours' => (float) ($validated['hours'] ?? 0),
+            'project_currency' => $validated['project_currency'] ?? '',
+            'manager_id' => $validated['project_manager'] ?? null,
+            'is_default' => $request->boolean('is_default') ? 1 : 0,
+            'is_visible' => $request->boolean('is_visible') ? 1 : 0,
+            'contract_copy' => '',
+        ];
+
         if ($request->hasFile('contract_copy')) {
             $file = $request->file('contract_copy');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('projects/contracts', $filename, 'public');
-            $validated['contract_copy'] = $path;
+            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
+            $destinationPath = public_path('assets/uploads/projects');
+            if (!is_dir($destinationPath)) {
+                mkdir($destinationPath, 0775, true);
+            }
+            $file->move($destinationPath, $filename);
+            $data['contract_copy'] = $filename;
         }
-        
-        $project = Project::create($validated);
-        
-        // Assign project users if provided
-        if ($request->has('assigned_consultants')) {
-            $consultantIds = explode(',', $request->assigned_consultants);
-            $project->users()->sync(array_filter($consultantIds));
+
+        $project = Project::create($data);
+
+        if ($request->filled('services')) {
+            $services = collect(explode(',', $request->input('services')))
+                ->map(fn($service) => trim($service))
+                ->filter()
+                ->values();
+
+            foreach ($services as $service) {
+                DB::table('services')->insert([
+                    'project' => $project->id,
+                    'service' => $service,
+                    'service_date' => now(),
+                ]);
+            }
         }
-        
+
+        $assignees = $this->extractProjectUserIds($request);
+        if (empty($assignees)) {
+            $assignees = [auth()->id()];
+        }
+        $project->users()->sync($assignees);
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return redirect()->route('projects.index')->with('success', 'Project created successfully');
+        }
+
         return response()->json([
             'error' => false,
             'message' => 'Project created successfully',
-            'project_id' => $project->id
+            'project_id' => $project->id,
         ]);
     }
     
@@ -327,45 +390,116 @@ class ProjectController extends Controller
     public function update(Request $request, $id)
     {
         if (!auth()->user()->inGroup(1) && !permissions('project_edit')) {
+            if (!$request->ajax() && !$request->wantsJson()) {
+                return redirect()->route('projects.index')->with('error', 'Access Denied');
+            }
             return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
         }
         
         $project = Project::findOrFail($id);
         
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
-            'description' => 'required',
+            'description' => 'required|string',
             'starting_date' => 'required|date',
-            'ending_date' => 'required|date',
-            'status' => 'required|string',
-            'client_id' => 'required|exists:users,id',
+            'ending_date' => 'required|date|after_or_equal:starting_date',
+            'actual_starting_date' => 'nullable|date',
+            'actual_ending_date' => 'nullable|date',
+            'status' => 'required|integer|exists:project_status,id',
+            'client_id' => 'required|integer|exists:users,id',
+            'ptype' => 'required|integer|exists:project_type,id',
+            'budget' => 'nullable|numeric',
+            'project_currency' => 'nullable|string|max:20',
+            'hours' => 'nullable|numeric',
+            'services' => 'nullable|string',
+            'project_manager' => 'nullable|integer|exists:users,id',
+            'contract_copy' => 'nullable|file|mimes:jpg,jpeg,png,pdf,doc|max:10240',
         ]);
-        
-        if ($request->hasFile('contract_copy')) {
-            // Delete old file
-            if ($project->contract_copy) {
-                Storage::disk('public')->delete($project->contract_copy);
+
+        if ($validator->fails()) {
+            if (!$request->ajax() && !$request->wantsJson()) {
+                return redirect()->route('projects.show', $id)
+                    ->withErrors($validator)
+                    ->withInput()
+                    ->with('error', $validator->errors()->first());
             }
-            
+            return response()->json([
+                'error' => true,
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        $data = [
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'client_id' => (int) $validated['client_id'],
+            'starting_date' => $validated['starting_date'],
+            'ending_date' => $validated['ending_date'],
+            'actual_starting_date' => $validated['actual_starting_date'] ?? $validated['starting_date'],
+            'actual_ending_date' => $validated['actual_ending_date'] ?? $validated['ending_date'],
+            'status' => (int) $validated['status'],
+            'budget' => array_key_exists('budget', $validated) ? (string) ($validated['budget'] ?? '') : '',
+            'ptype' => (int) $validated['ptype'],
+            'hours' => (float) ($validated['hours'] ?? 0),
+            'project_currency' => $validated['project_currency'] ?? '',
+            'manager_id' => $validated['project_manager'] ?? null,
+            'is_default' => $request->boolean('is_default') ? 1 : 0,
+            'is_visible' => $request->boolean('is_visible') ? 1 : 0,
+        ];
+
+        if ($request->hasFile('contract_copy')) {
+            if (!empty($project->contract_copy)) {
+                $oldPath = public_path('assets/uploads/projects/' . $project->contract_copy);
+                if (file_exists($oldPath)) {
+                    @unlink($oldPath);
+                }
+            }
+
             $file = $request->file('contract_copy');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('projects/contracts', $filename, 'public');
-            $validated['contract_copy'] = $path;
+            $filename = time() . '_' . preg_replace('/[^A-Za-z0-9._-]/', '_', $file->getClientOriginalName());
+            $destinationPath = public_path('assets/uploads/projects');
+            if (!is_dir($destinationPath)) {
+                mkdir($destinationPath, 0775, true);
+            }
+            $file->move($destinationPath, $filename);
+            $data['contract_copy'] = $filename;
         }
-        
-        $validated['is_default'] = $request->has('is_default');
-        $validated['is_visible_to_customer'] = !$request->has('is_not_visible_to_customer');
-        
-        $project->update($validated);
-        
-        if ($request->has('assigned_consultants')) {
-            $consultantIds = explode(',', $request->assigned_consultants);
-            $project->users()->sync(array_filter($consultantIds));
+
+        if ($request->filled('services')) {
+            DB::table('services')->where('project', $project->id)->delete();
+
+            $services = collect(explode(',', $request->input('services')))
+                ->map(fn($service) => trim($service))
+                ->filter()
+                ->values();
+
+            foreach ($services as $service) {
+                DB::table('services')->insert([
+                    'project' => $project->id,
+                    'service' => $service,
+                    'service_date' => now(),
+                ]);
+            }
         }
-        
+
+        $project->update($data);
+
+        $assignees = $this->extractProjectUserIds($request);
+        if (!empty($assignees)) {
+            $project->users()->sync($assignees);
+        } else {
+            $project->users()->syncWithoutDetaching([auth()->id()]);
+        }
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return redirect()->route('projects.show', $id)->with('success', 'Project updated successfully');
+        }
+
         return response()->json([
             'error' => false,
-            'message' => 'Project updated successfully'
+            'message' => 'Project updated successfully',
         ]);
     }
     
@@ -389,13 +523,19 @@ class ProjectController extends Controller
         }
         
         // Delete contract file
-        if ($project->contract_copy) {
-            Storage::disk('public')->delete($project->contract_copy);
+        if (!empty($project->contract_copy)) {
+            $filePath = public_path('assets/uploads/projects/' . $project->contract_copy);
+            if (file_exists($filePath)) {
+                @unlink($filePath);
+            }
         }
         
         // Delete project files
         foreach ($project->files as $file) {
-            Storage::disk('public')->delete('projects/' . $file->file_name);
+            $uploadedPath = public_path('assets/uploads/projects/' . $file->file_name);
+            if (file_exists($uploadedPath)) {
+                @unlink($uploadedPath);
+            }
             $file->delete();
         }
         
@@ -464,5 +604,31 @@ class ProjectController extends Controller
             'error' => false,
             'message' => 'File deleted successfully'
         ]);
+    }
+
+    private function extractProjectUserIds(Request $request): array
+    {
+        $rawIds = [];
+        if ($request->filled('assigned_consultants')) {
+            $rawIds = collect(explode(',', (string) $request->input('assigned_consultants')))
+                ->map(fn($id) => (int) trim($id))
+                ->filter(fn($id) => $id > 0)
+                ->values()
+                ->all();
+        }
+
+        if (empty($rawIds) && $request->filled('users')) {
+            $rawIds = collect(explode(',', (string) $request->input('users')))
+                ->map(fn($id) => (int) trim($id))
+                ->filter(fn($id) => $id > 0)
+                ->values()
+                ->all();
+        }
+
+        if (empty($rawIds)) {
+            return [];
+        }
+
+        return User::whereIn('id', $rawIds)->pluck('id')->map(fn($id) => (int) $id)->all();
     }
 }
