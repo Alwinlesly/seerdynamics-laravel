@@ -1,5 +1,19 @@
 <?php
 
+$mailScheme = env('MAIL_SCHEME');
+$mailEncryption = env('MAIL_ENCRYPTION');
+
+// Symfony SMTP transport only accepts smtp/smtps schemes.
+if ($mailScheme === null && $mailEncryption === 'ssl') {
+    $mailScheme = 'smtps';
+} elseif ($mailScheme === null && $mailEncryption === 'tls') {
+    $mailScheme = 'smtp';
+} elseif ($mailScheme === 'tls') {
+    $mailScheme = 'smtp';
+} elseif ($mailScheme === 'ssl') {
+    $mailScheme = 'smtps';
+}
+
 return [
 
     /*
@@ -39,7 +53,7 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME'),
+            'scheme' => $mailScheme,
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),
