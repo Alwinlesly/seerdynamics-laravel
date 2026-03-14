@@ -147,18 +147,7 @@
                     </div>
                 </div>
 
-                <!-- Footer -->
-                <div class="footer">
-                    <div class="d-flex foot-left">
-                        <img src="{{ asset('assets/img/logo-360x103.png') }}" alt="">
-                        <img src="{{ asset('img/Business-Applications.webp') }}" alt="">
-                    </div>
-                    <div class="store-apps">
-                        <img src="{{ asset('img/microsoft-store.png') }}" alt="Microsoft Store" />
-                        <img src="{{ asset('img/playstore.png') }}" alt="Google Play" />
-                        <img src="{{ asset('img/appstore.png') }}" alt="App Store" />
-                    </div>
-                </div>
+                @include('partials.footer')
             </div>
         </div>
     </div>
