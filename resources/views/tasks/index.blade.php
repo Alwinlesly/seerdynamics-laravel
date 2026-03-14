@@ -157,6 +157,8 @@
 
 @push('scripts')
 <script>
+    const canEditTaskAction = @json(!auth()->user()->inGroup(3));
+    const canDeleteTaskAction = @json(!auth()->user()->inGroup(2) && !auth()->user()->inGroup(3));
     let currentPage = 1;
     let totalRecords = 0;
     const limit = 20;
@@ -267,6 +269,27 @@
             tasks.forEach(task => {
                 const statusClass = task.status.toLowerCase().replace(/\s+/g, '-');
                 const priorityClass = task.priority_class;
+                const actionHtml = `
+                    ${canEditTaskAction ? `
+                        <span class="edit-task" data-id="${task.id}" style="cursor: pointer;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                        </span>
+                    ` : ''}
+                    ${canDeleteTaskAction ? `
+                        <span class="delete-task" data-id="${task.id}" style="cursor: pointer;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                <line x1="10" y1="11" x2="10" y2="17"/>
+                                <line x1="14" y1="11" x2="14" y2="17"/>
+                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                            </svg>
+                        </span>
+                    ` : ''}
+                `;
 
                 html += `
                     <tr>
@@ -281,23 +304,7 @@
                         <td><span class="status ${statusClass}">${task.status}</span></td>
                         <td>
                             <div class="d-flex gap-2 align-items-center justify-content-center">
-                                <span class="edit-task" data-id="${task.id}" style="cursor: pointer;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                    </svg>
-                                </span>
-                                @if(!auth()->user()->inGroup(2))
-                                <span class="delete-task" data-id="${task.id}" style="cursor: pointer;">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="3 6 5 6 21 6"/>
-                                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                                        <line x1="10" y1="11" x2="10" y2="17"/>
-                                        <line x1="14" y1="11" x2="14" y2="17"/>
-                                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                                    </svg>
-                                </span>
-                                @endif
+                                ${actionHtml}
                             </div>
                         </td>
                     </tr>
@@ -520,6 +527,7 @@
 
     // Edit task
     $(document).on('click', '.edit-task', function() {
+        if (!canEditTaskAction) return;
         const taskId = $(this).data('id');
         // Load task data and open edit modal
         $.ajax({
@@ -539,6 +547,7 @@
 
     // Delete task
     $(document).on('click', '.delete-task', function() {
+        if (!canDeleteTaskAction) return;
         const taskId = $(this).data('id');
         $('#deleteTaskId').val(taskId);
         $('#deleteTaskModal').modal('show');

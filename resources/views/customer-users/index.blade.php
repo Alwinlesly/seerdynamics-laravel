@@ -98,6 +98,7 @@
 
 @push('scripts')
 <script>
+let canManageCustomerUsers = @json(auth()->user()->inGroup(1));
 let currentPage = 1;
 const limit = 20;
 
@@ -195,6 +196,23 @@ $(document).ready(function() {
                 : `<div class="avatar-circle avatar-gradient">${initials}</div>`;
             
             const statusClass = cuser.status === 'Active' ? 'status-active' : 'status-incative';
+            const actionsHtml = canManageCustomerUsers ? `
+                            <span class="edit-customer-user" data-id="${cuser.id}" style="cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                            </span>
+                            <span class="delete-customer-user" data-id="${cuser.id}" style="cursor: pointer;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+                                </svg>
+                            </span>
+            ` : '';
             
             const row = `
                 <tr>
@@ -211,21 +229,7 @@ $(document).ready(function() {
                     <td><span class="${statusClass}">${cuser.status}</span></td>
                     <td>
                         <div class="d-flex gap-2 align-items-center justify-content-center">
-                            <span class="edit-customer-user" data-id="${cuser.id}" style="cursor: pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                            </span>
-                            <span class="delete-customer-user" data-id="${cuser.id}" style="cursor: pointer;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
-                                </svg>
-                            </span>
+                            ${actionsHtml}
                         </div>
                     </td>
                 </tr>
@@ -252,6 +256,7 @@ $(document).ready(function() {
     
     // Edit customer user
     $(document).on('click', '.edit-customer-user', function() {
+        if (!canManageCustomerUsers) return;
         const cuserId = $(this).data('id');
         
         $.ajax({
@@ -284,6 +289,7 @@ $(document).ready(function() {
     
     // Delete customer user
     $(document).on('click', '.delete-customer-user', function() {
+        if (!canManageCustomerUsers) return;
         const cuserId = $(this).data('id');
         $('#deleteCustomerUserId').val(cuserId);
         $('#deleteCustomerUserModal').modal('show');

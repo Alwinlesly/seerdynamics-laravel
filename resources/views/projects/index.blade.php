@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@php($canManageProjects = !$current_user->inGroup(3))
 <div class="main">
     <!-- Top Header -->
     @include('partials.header')
@@ -25,13 +26,15 @@
                             </span>
                         </div>
 
-                        <button class="btn btn-create" data-bs-toggle="modal" data-bs-target="#createProjectModal">
-                            <span>
-                                <svg fill="#fff" width="20px" height="20px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12,20a1,1,0,0,1-1-1V13H5a1,1,0,0,1,0-2h6V5a1,1,0,0,1,2,0v6h6a1,1,0,0,1,0,2H13v6A1,1,0,0,1,12,20Z"></path>
-                                </svg>
-                            </span> Create
-                        </button>
+                        @if($canManageProjects)
+                            <button class="btn btn-create" data-bs-toggle="modal" data-bs-target="#createProjectModal">
+                                <span>
+                                    <svg fill="#fff" width="20px" height="20px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12,20a1,1,0,0,1-1-1V13H5a1,1,0,0,1,0-2h6V5a1,1,0,0,1,2,0v6h6a1,1,0,0,1,0,2H13v6A1,1,0,0,1,12,20Z"></path>
+                                    </svg>
+                                </span> Create
+                            </button>
+                        @endif
                     </div>
                 </div>
 
@@ -119,6 +122,7 @@
 </div>
 
 <!-- Create Project Modal -->
+@if($canManageProjects)
 @include('projects.modals.create')
 
 <!-- Edit Project Modal -->
@@ -126,6 +130,7 @@
 
 <!-- Delete Confirmation Modal -->
 @include('projects.modals.delete')
+@endif
 
 @endsection
 
@@ -133,6 +138,7 @@
 <script>
 let currentPage = 1;
 const limit = 20;
+const canManageProjects = @json($canManageProjects);
 
 $(document).ready(function() {
     loadProjects();
@@ -208,16 +214,7 @@ function renderProjects(projects) {
     projects.forEach(function(project) {
         const status = project.status || 'Open';
         const statusClass = status.toLowerCase().replace(' ', '-');
-        html += `
-            <tr>
-                <td><a href="/projects/${project.id}" style="color: #7d6bb2; text-decoration: none;">${project.project_id} ${project.title}</a></td>
-                <td>${project.customer}</td>
-                <td class="text-center">${project.tickets}</td>
-                <td>${project.from}</td>
-                <td>${project.to}</td>
-                <td class="text-center">${project.total_hours}</td>
-                <td><span class="status ${statusClass}">${status}</span></td>
-                <td>
+        const actionHtml = canManageProjects ? `
                     <div class="d-flex gap-2 align-items-center justify-content-center">
                         <span class="edit-project" data-id="${project.id}" style="cursor: pointer;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2">
@@ -235,7 +232,17 @@ function renderProjects(projects) {
                             </svg>
                         </span>
                     </div>
-                </td>
+        ` : '';
+        html += `
+            <tr>
+                <td><a href="/projects/${project.id}" style="color: #7d6bb2; text-decoration: none;">${project.project_id} ${project.title}</a></td>
+                <td>${project.customer}</td>
+                <td class="text-center">${project.tickets}</td>
+                <td>${project.from}</td>
+                <td>${project.to}</td>
+                <td class="text-center">${project.total_hours}</td>
+                <td><span class="status ${statusClass}">${status}</span></td>
+                <td>${actionHtml}</td>
             </tr>
         `;
     });
@@ -266,6 +273,7 @@ function debounce(func, wait) {
 
 // Edit project
 $(document).on('click', '.edit-project', function() {
+    if (!canManageProjects) return;
     const projectId = $(this).data('id');
     
     // Fetch project data
@@ -328,6 +336,7 @@ $(document).on('click', '.edit-project', function() {
 
 // Delete project
 $(document).on('click', '.delete-project', function() {
+    if (!canManageProjects) return;
     const projectId = $(this).data('id');
     $('#deleteProjectId').val(projectId);
     $('#deleteProjectModal').modal('show');

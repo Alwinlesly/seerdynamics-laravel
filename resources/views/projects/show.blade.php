@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@php($canManageProjects = !$current_user->inGroup(3))
 <div class="main">
     @include('partials.header')
 
@@ -22,8 +23,10 @@
                             <div class="btn-group pd_sc--btn-group" role="group">
                                 <button class="btn btn-purple" onclick="window.location.href='/tasks?project={{ $project->id }}'">Tickets</button>
                                 <button class="btn btn-purple" onclick="window.location.href='{{ route('timesheets.index') }}?project={{ $project->id }}'">Timesheet</button>
-                                <button class="btn btn-outline-purple" onclick="editProject({{ $project->id }})">Edit</button>
-                                <button class="btn btn-outline-red btn-rounded" onclick="deleteProject({{ $project->id }})">Delete</button>
+                                @if($canManageProjects)
+                                    <button class="btn btn-outline-purple" onclick="editProject({{ $project->id }})">Edit</button>
+                                    <button class="btn btn-outline-red btn-rounded" onclick="deleteProject({{ $project->id }})">Delete</button>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -161,11 +164,13 @@
                                                 <th scope="col" class="th-color">Project file</th>
                                                 <th scope="col" class="font-medium">Type</th>
                                                 <th scope="col" class="font-medium">Size</th>
-                                                <th scope="col" class="text-center font-medium"><span>Action</span></th>
-                                                <th scope="col" class="text-center font-medium">
-                                                    <i class="bi bi-upload download-icon" onclick="document.getElementById('fileUpload').click()"></i>
-                                                    <input type="file" id="fileUpload" style="display:none" onchange="uploadFile()">
-                                                </th>
+                                                @if($canManageProjects)
+                                                    <th scope="col" class="text-center font-medium"><span>Action</span></th>
+                                                    <th scope="col" class="text-center font-medium">
+                                                        <i class="bi bi-upload download-icon" onclick="document.getElementById('fileUpload').click()"></i>
+                                                        <input type="file" id="fileUpload" style="display:none" onchange="uploadFile()">
+                                                    </th>
+                                                @endif
                                             </tr>
                                         </thead>
                                         <tbody id="filesTableBody">
@@ -174,16 +179,18 @@
                                                 <td>{{ $file->file_name }}</td>
                                                 <td>{{ strtoupper($file->file_type) }}</td>
                                                 <td>{{ $file->file_size_formatted }}</td>
-                                                <td class="text-center">
-                                                    <span title="Delete" class="del-item" onclick="deleteFile({{ $file->id }})">
-                                                        <i class="bi bi-trash"></i>
-                                                    </span>
-                                                </td>
-                                                <td></td>
+                                                @if($canManageProjects)
+                                                    <td class="text-center">
+                                                        <span title="Delete" class="del-item" onclick="deleteFile({{ $file->id }})">
+                                                            <i class="bi bi-trash"></i>
+                                                        </span>
+                                                    </td>
+                                                    <td></td>
+                                                @endif
                                             </tr>
                                             @empty
                                             <tr>
-                                                <td colspan="5" class="text-center">No files uploaded</td>
+                                                <td colspan="{{ $canManageProjects ? 5 : 3 }}" class="text-center">No files uploaded</td>
                                             </tr>
                                             @endforelse
                                         </tbody>
@@ -201,6 +208,7 @@
 </div>{{-- .main --}}
 
 {{-- Edit Project Modal (inline so Bootstrap can find it) --}}
+@if($canManageProjects)
 @include('projects.modals.edit')
 
 {{-- Delete Project Modal --}}
@@ -222,15 +230,19 @@
         </div>
     </div>
 </div>
+@endif
 
 @endsection
 
 @push('scripts')
 <script>
 const projectId = {{ $project->id }};
+const canManageProjects = @json($canManageProjects);
 
 function uploadFile() {
+    if (!canManageProjects) return;
     const fileInput = document.getElementById('fileUpload');
+    if (!fileInput) return;
     const file = fileInput.files[0];
     
     if (!file) return;
@@ -254,6 +266,7 @@ function uploadFile() {
 }
 
 function deleteFile(fileId) {
+    if (!canManageProjects) return;
     if (!confirm('Are you sure you want to delete this file?')) return;
     
     $.ajax({
@@ -271,6 +284,7 @@ function deleteFile(fileId) {
 }
 
 function editProject(id) {
+    if (!canManageProjects) return;
     // Load project data into the modal via AJAX, then show modal
     $.ajax({
         url: `/projects/${id}/edit`,
@@ -316,11 +330,13 @@ function editProject(id) {
 }
 
 function deleteProject(id) {
+    if (!canManageProjects) return;
     $('#deleteProjectId').val(id);
     $('#deleteProjectModal').modal('show');
 }
 
 $('#confirmDeleteProject').on('click', function() {
+    if (!canManageProjects) return;
     const id = $('#deleteProjectId').val();
     $.ajax({
         url: `/projects/${id}`,

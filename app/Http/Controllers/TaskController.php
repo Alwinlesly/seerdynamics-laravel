@@ -61,11 +61,17 @@ class TaskController extends Controller
             $data['projects'] = Project::all();
         }
         
-        // Get customers for filter (admins and consultants)
+        // Get customers for filter
         if ($user->inGroup(1) || $user->inGroup(2)) {
             $data['customers'] = User::whereHas('groups', function($q) {
                 $q->where('groups.id', 3); // Customer group ID
             })->get();
+        } elseif ($user->inGroup(3)) {
+            // Customer admin: only own/parent customer accounts
+            $clientIds = $user->getCustomerClientIds();
+            $data['customers'] = User::whereIn('id', $clientIds)->get();
+        } else {
+            $data['customers'] = collect();
         }
 
         // Get Services for dropdown
