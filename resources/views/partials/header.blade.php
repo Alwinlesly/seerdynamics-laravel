@@ -13,7 +13,7 @@
     <div class="top-right">
         <div class="dropdown">
             <div class="profile-container" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <img src="{{ asset('assets/img/mrs1.webp') }}" alt="User Profile">
+                <!-- <img src="{{ asset('assets/img/mrs1.webp') }}" alt="User Profile"> -->
                 <div class="profile-info">
                     <div class="name">{{ $current_user->first_name }} {{ $current_user->last_name }}</div>
                     <div class="email">{{ $current_user->email }}</div>
