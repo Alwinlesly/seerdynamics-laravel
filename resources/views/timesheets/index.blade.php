@@ -159,6 +159,8 @@
 
 @push('scripts')
 <script>
+const canManageTimesheets = @json($current_user->inGroup(1));
+
 $(document).ready(function() {
 
     // Sidebar toggle
@@ -321,23 +323,8 @@ function renderTimesheets(timesheets, total) {
     
     timesheets.forEach(function(timesheet, index) {
         console.log('Rendering timesheet', index, ':', timesheet);
-        
-        const row = `
-            <tr>
-                <td><span>${timesheet.timesheet_id || 'N/A'}</span></td>
-                <td>${timesheet.user || 'N/A'}</td>
-                <td>${timesheet.work_week || 'N/A'}</td>
-                <td class="text-center">${timesheet.billable || 0}</td>
-                <td class="text-center">${timesheet.non_billable || 0}</td>
-                <td class="text-center"><span class="${timesheet.status_class || ''}">${timesheet.status || 'N/A'}</span></td>
-                <td>
-                    <div class="d-flex gap-2 align-items-center justify-content-center">
-                        {{-- View icon --}}
-                        <a href="{{ url('timesheet') }}/${timesheet.id}/show" title="View">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-                            </svg>
-                        </a>
+
+        const managementActions = canManageTimesheets ? `
                         {{-- Edit icon --}}
                         <a href="{{ url('timesheet') }}/${timesheet.id}/edit" title="Edit">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -355,6 +342,25 @@ function renderTimesheets(timesheets, total) {
                                 <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                             </svg>
                         </span>
+        ` : '';
+        
+        const row = `
+            <tr>
+                <td><span>${timesheet.timesheet_id || 'N/A'}</span></td>
+                <td>${timesheet.user || 'N/A'}</td>
+                <td>${timesheet.work_week || 'N/A'}</td>
+                <td class="text-center">${timesheet.billable || 0}</td>
+                <td class="text-center">${timesheet.non_billable || 0}</td>
+                <td class="text-center"><span class="${timesheet.status_class || ''}">${timesheet.status || 'N/A'}</span></td>
+                <td>
+                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                        {{-- View icon --}}
+                        <a href="{{ url('timesheet') }}/${timesheet.id}/show" title="View">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </a>
+                        ${managementActions}
                     </div>
                 </td>
             </tr>
