@@ -189,7 +189,7 @@
     });
 
     // Show file name when file is selected
-    $('#attachment').on('change', function() {
+    $(document).on('change', '#attachment', function() {
         const fileName = this.files[0] ? this.files[0].name : '';
         $('#attachmentName').val(fileName);
     });

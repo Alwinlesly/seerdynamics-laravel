@@ -272,9 +272,9 @@ $(document).ready(function() {
                     $('#editLastName').val(customer.last_name || '');
                     $('#editPhone').val(customer.phone || '');
                     
-                    // Reset password and logo
+                    // Reset password and keep current logo name visible (like project edit)
                     $('#editPassword').val('');
-                    $('#editLogoFileName').val('');
+                    $('#editLogoFileName').val(customer.profile || '');
                     $('#editCustomerLogo').val('');
                     
                     $('#editCustomerModal').modal('show');

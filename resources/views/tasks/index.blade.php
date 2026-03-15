@@ -564,6 +564,8 @@
         $('#edit_issue_date').val(task.due_date);
         $('#edit_status').val(task.status_title);
         $('#edit_additional_mail').val(task.additional_mail);
+        const attachmentName = task.attachment ? String(task.attachment).split('/').pop() : '';
+        $('#editAttachmentName').val(attachmentName);
         
         // Populate Select2 fields for users
         if (task.users) {

@@ -110,8 +110,8 @@
 <script>
 $(document).ready(function() {
     // Show selected file name
-    $('#customerLogo').on('change', function() {
-        const fileName = $(this).val().split('\\').pop();
+    $(document).on('change', '#customerLogo', function() {
+        const fileName = this.files && this.files[0] ? this.files[0].name : '';
         $('#logoFileName').val(fileName);
     });
 

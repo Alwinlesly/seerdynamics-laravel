@@ -148,10 +148,11 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
 // Display file name when selected
-$('#createContractFile').on('change', function() {
-    const fileName = $(this).val().split('\\').pop();
+$(document).on('change', '#createContractFile', function() {
+    const fileName = this.files && this.files[0] ? this.files[0].name : '';
     $('#contractFileName').val(fileName);
 });
 
@@ -182,3 +183,4 @@ $(document).on('submit', '#createProjectForm', function(e) {
     });
 });
 </script>
+@endpush

@@ -151,10 +151,11 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
 // Display file name when selected (Edit modal)
-$('#editContractFile').on('change', function() {
-    const fileName = $(this).val().split('\\').pop();
+$(document).on('change', '#editContractFile', function() {
+    const fileName = this.files && this.files[0] ? this.files[0].name : '';
     $('#editContractFileName').val(fileName);
 });
 
@@ -191,3 +192,4 @@ $(document).on('submit', '#editProjectForm', function(e) {
     });
 });
 </script>
+@endpush

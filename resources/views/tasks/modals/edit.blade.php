@@ -192,7 +192,7 @@
     });
 
     // Show file name when file is selected
-    $('#edit_attachment').on('change', function() {
+    $(document).on('change', '#edit_attachment', function() {
         const fileName = this.files[0] ? this.files[0].name : '';
         $('#editAttachmentName').val(fileName);
     });
