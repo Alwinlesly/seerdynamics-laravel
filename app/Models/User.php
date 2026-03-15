@@ -25,6 +25,13 @@ class User extends Authenticatable
         'ip_address',
         'created_on',
         'last_login',
+        'forgotten_password_selector',
+        'forgotten_password_code',
+        'forgotten_password_time',
+        'activation_selector',
+        'activation_code',
+        'remember_selector',
+        'remember_code',
     ];
     protected $hidden = [
         'password',

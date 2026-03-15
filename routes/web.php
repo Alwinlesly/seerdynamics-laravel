@@ -16,7 +16,7 @@ Route::get('/auth/login', [LoginController::class, 'index']);
 Route::post('/auth/login', [LoginController::class, 'login'])->name('login.submit');
 Route::get('/auth/logout', [LoginController::class, 'logout'])->name('logout');
 Route::post('/auth/forgot-password', [ForgotPasswordController::class, 'sendResetLink']);
-Route::get('/auth/reset-password/{code}', [ResetPasswordController::class, 'showResetForm']);
+Route::get('/auth/reset-password/{code}', [ResetPasswordController::class, 'showResetForm'])->where('code', '.*');
 Route::post('/auth/reset-password', [ResetPasswordController::class, 'reset']);
 
 // Protected Routes

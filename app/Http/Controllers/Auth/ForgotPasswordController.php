@@ -3,8 +3,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 class ForgotPasswordController extends Controller
 {
@@ -28,10 +28,14 @@ class ForgotPasswordController extends Controller
                 'message' => 'Email not found.',
             ]);
         }
-        // Generate reset code
-        $code = Str::random(40);
+        // Match CI/Ion Auth format: selector.validator
+        $selector = bin2hex(random_bytes(10)); // 20 chars
+        $validatorToken = bin2hex(random_bytes(40)); // 80 chars
+        $code = $selector . '.' . $validatorToken;
+
         $user->update([
-            'forgotten_password_code' => $code,
+            'forgotten_password_selector' => $selector,
+            'forgotten_password_code' => Hash::make($validatorToken),
             'forgotten_password_time' => time(),
         ]);
         // Send email
