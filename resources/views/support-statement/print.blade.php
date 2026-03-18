@@ -64,7 +64,9 @@
                                 <th style="width:25%; text-align:center;">Task Name</th>
                                 <th style="width:13%; text-align:center;">Created at</th>
                                 <th style="width:10%; text-align:center;">Status</th>
+                                @if($show_consultant ?? false)
                                 <th style="width:20%; text-align:center;">Consultant</th>
+                                @endif
                                 <th style="width:15%; text-align:center;">Date</th>
                                 <th style="width:5%; text-align:center;">Hours</th>
                             </tr>
@@ -73,8 +75,9 @@
                             @foreach($tasks as $task)
                             @php
                                 $isFirstRow = true;
+                                $rows = ($show_consultant ?? false) ? ($task['detailed_hours'] ?? []) : ($task['grouped_hours'] ?? []);
                             @endphp
-                            @foreach($task['hours'] as $index => $hour)
+                            @foreach($rows as $index => $hour)
                             <tr class="{{ $isFirstRow ? 'task-group' : '' }}">
                                 @if($isFirstRow)
                                 <td style="width:7%; text-align:center;">{{ $task['ticket_no'] }}</td>
@@ -87,7 +90,9 @@
                                 <td style="width:13%;"></td>
                                 <td style="width:10%;"></td>
                                 @endif
+                                @if($show_consultant ?? false)
                                 <td style="width:20%; text-align:center;">{{ $hour['consultant'] }}</td>
+                                @endif
                                 <td style="width:15%; text-align:center;">{{ $hour['date'] }}</td>
                                 <td style="width:5%; text-align:center;">{{ $hour['totalhr'] }}</td>
                             </tr>
@@ -99,7 +104,10 @@
                                 <td style="width:25%;"></td>
                                 <td style="width:13%;"></td>
                                 <td style="width:10%;"></td>
-                                <td colspan="2" style="text-align:right;"><b>Total Hours</b></td>
+                                @if($show_consultant ?? false)
+                                <td style="width:20%;"></td>
+                                @endif
+                                <td style="width:15%; text-align:right;"><b>Total Hours</b></td>
                                 <td style="width:5%; text-align:center;"><b>{{ $task['total_hours'] }}</b></td>
                             </tr>
                             @endforeach

@@ -88,7 +88,16 @@
                                             <input type="hidden" name="project" id="printProject">
                                             <input type="hidden" name="from_date" id="printFromDate">
                                             <input type="hidden" name="to_date" id="printToDate">
+                                            <input type="hidden" name="show_consultant" id="printShowConsultant" value="0">
                                         </form>
+                                        @if(auth()->user()->inGroup(1))
+                                        <div class="mb-2 px-2">
+                                            <label class="d-flex align-items-center gap-2">
+                                                <input type="checkbox" id="toggleConsultant">
+                                                <span>Show Consultant</span>
+                                            </label>
+                                        </div>
+                                        @endif
                                         <div class="mb-2 px-2">
                                             <div class="ss-hd">
                                                 <div>
@@ -217,7 +226,7 @@
                                                         <th>Task name</th>
                                                         <th>Created at</th>
                                                         <th>Status</th>
-                                                        <th>Consultant</th>
+                                                        <th id="consultantHeader">Consultant</th>
                                                         <th>Date</th>
                                                         <th>Hours</th>
                                                     </tr>
@@ -246,6 +255,9 @@
 @push('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 <script>
+    let supportStatementTasks = [];
+    let supportStatementShowConsultant = false;
+
     $(document).ready(function() {
         // Initialize datepickers
         $('#fromDateFilter, #toDateFilter').datepicker({
@@ -263,6 +275,11 @@
         $('#submitBtn').on('click', function(e) {
             e.preventDefault();
             loadReport();
+        });
+
+        $('#toggleConsultant').on('change', function() {
+            supportStatementShowConsultant = $(this).is(':checked');
+            renderTasks(supportStatementTasks);
         });
     });
 
@@ -312,6 +329,7 @@
         $('#printProject').val(project);
         $('#printFromDate').val(fromDate);
         $('#printToDate').val(toDate);
+        $('#printShowConsultant').val(supportStatementShowConsultant ? '1' : '0');
         $('#printForm').submit();
     }
 
@@ -368,8 +386,16 @@
                 // Show report card
                 $('#reportContainer').show();
 
-                // Render tasks table
-                renderTasks(response.tasks);
+                supportStatementTasks = response.tasks || [];
+                supportStatementShowConsultant = !!response.show_consultant;
+                if ($('#toggleConsultant').length) {
+                    $('#toggleConsultant').prop('checked', supportStatementShowConsultant);
+                }
+
+                // Render tasks table with old behavior:
+                // - customer admin: consultant hidden and grouped month view
+                // - admin: optional consultant detailed view
+                renderTasks(supportStatementTasks);
                 $('#tasksTableContainer').show();
             },
             error: function(xhr) {
@@ -383,16 +409,23 @@
         var tbody = $('#tasksTableBody');
         tbody.empty();
 
+        if (supportStatementShowConsultant) {
+            $('#consultantHeader').show();
+        } else {
+            $('#consultantHeader').hide();
+        }
+
         if (!tasks || tasks.length === 0) {
             tbody.append('<tr><td colspan="7" class="text-center">No tasks found</td></tr>');
             return;
         }
 
         tasks.forEach(function(task) {
-            if (task.hours.length === 0) return;
+            var hourRows = supportStatementShowConsultant ? (task.detailed_hours || []) : (task.grouped_hours || []);
+            if (hourRows.length === 0) return;
 
             // First row with task info + first hour entry
-            var firstHour = task.hours[0];
+            var firstHour = hourRows[0];
             var statusClass = task.status.toLowerCase().includes('close') || task.status.toLowerCase().includes('complete') ? 'closed-status' : 'open-status';
 
             var firstRow = '<tr>' +
@@ -400,19 +433,19 @@
                 '<td class="ticket-report">' + task.title + '</td>' +
                 '<td class="ticket-cdate">' + task.created_at + '</td>' +
                 '<td><div><span class="' + statusClass + '">' + task.status + '</span></div></td>' +
-                '<td class="consultant-name">' + firstHour.consultant + '</td>' +
+                '<td class="consultant-name consultant-col-cell">' + (supportStatementShowConsultant ? (firstHour.consultant || '') : '') + '</td>' +
                 '<td class="consultant-date">' + firstHour.date + '</td>' +
                 '<td class="consultant-hrs">' + firstHour.totalhr + '</td>' +
                 '</tr>';
             tbody.append(firstRow);
 
             // Remaining hour entries
-            for (var i = 1; i < task.hours.length; i++) {
+            for (var i = 1; i < hourRows.length; i++) {
                 var hourRow = '<tr>' +
                     '<td></td><td></td><td></td><td></td>' +
-                    '<td class="consultant-name">' + task.hours[i].consultant + '</td>' +
-                    '<td class="consultant-date">' + task.hours[i].date + '</td>' +
-                    '<td class="consultant-hrs">' + task.hours[i].totalhr + '</td>' +
+                    '<td class="consultant-name consultant-col-cell">' + (supportStatementShowConsultant ? (hourRows[i].consultant || '') : '') + '</td>' +
+                    '<td class="consultant-date">' + hourRows[i].date + '</td>' +
+                    '<td class="consultant-hrs">' + hourRows[i].totalhr + '</td>' +
                     '</tr>';
                 tbody.append(hourRow);
             }
@@ -420,12 +453,18 @@
             // Total row for this task
             var totalRow = '<tr class="total-row">' +
                 '<td></td><td></td><td></td><td></td>' +
-                '<td class="ttl-hrs"></td>' +
+                '<td class="ttl-hrs consultant-col-cell"></td>' +
                 '<td class="ttl-hrs"><strong>Total Hours</strong></td>' +
                 '<td class="ttl-hrs"><strong>' + task.total_hours + '</strong></td>' +
                 '</tr>';
             tbody.append(totalRow);
         });
+
+        if (supportStatementShowConsultant) {
+            $('.consultant-col-cell').show();
+        } else {
+            $('.consultant-col-cell').hide();
+        }
     }
 </script>
 @endpush

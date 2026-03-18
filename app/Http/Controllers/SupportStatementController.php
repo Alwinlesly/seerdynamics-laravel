@@ -83,110 +83,124 @@ class SupportStatementController extends Controller
     public function reportView(Request $request)
     {
         $user = auth()->user();
-        
         $customer = $request->input('customer');
-        $project = $request->input('project');
+        $project = (int) $request->input('project');
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
-        
-        // Get customer details
+
+        $fromYmd = date('Y-m-d', strtotime($fromDate));
+        $toYmd = date('Y-m-d', strtotime($toDate));
+
+        if (!$this->canAccessProject($user, $project)) {
+            return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+        }
+
         $customerData = DB::table('users')
             ->select('company', 'id')
             ->where('id', $customer)
             ->first();
-        
-        // Get project details with status
+
         $projectData = DB::table('projects as p')
             ->join('project_status as ps', 'ps.id', '=', 'p.status')
             ->where('p.id', $project)
             ->select('p.*', 'ps.title as project_status')
             ->first();
-        
-        // Get total released hours for this project in the date range
-        $utilizedHours = DB::table('weekly_timesheet as t')
-            ->join('weekly_timesheet_project_task_details as wp', 'wp.timesheet_id', '=', 't.id')
+
+        $hoursUtilized = DB::table('weekly_timesheet_project_task_details as wp')
             ->join('weekly_timesheet_project_task_hours as wh', 'wh.timesheet_project_task_id', '=', 'wp.id')
             ->where('wp.project_id', $project)
             ->where('wh.status', 1)
             ->where('wp.status', 1)
             ->where('wh.release_status', 1)
-            ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') >= ?", [date('Y-m-d', strtotime($fromDate))])
-            ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') <= ?", [date('Y-m-d', strtotime($toDate))])
-            ->select(DB::raw('COALESCE(SUM(wh.released_hour), 0) as totalhour'))
-            ->first();
-        
-        // Get hours utilized up to from_date (balance c/f)
-        $utilizedUptoFromDate = DB::table('weekly_timesheet as t')
-            ->join('weekly_timesheet_project_task_details as wp', 'wp.timesheet_id', '=', 't.id')
+            ->where('wh.date', '>=', $fromYmd)
+            ->where('wh.date', '<=', $toYmd)
+            ->sum('wh.released_hour');
+
+        $utilizedUptoFromDate = DB::table('weekly_timesheet_project_task_details as wp')
             ->join('weekly_timesheet_project_task_hours as wh', 'wh.timesheet_project_task_id', '=', 'wp.id')
             ->where('wp.project_id', $project)
             ->where('wh.status', 1)
             ->where('wp.status', 1)
             ->where('wh.release_status', 1)
-            ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') < ?", [date('Y-m-d', strtotime($fromDate))])
-            ->select(DB::raw('COALESCE(SUM(wh.released_hour), 0) as totalhour'))
-            ->first();
-        
-        // Get tasks with released hours in this project+date range
-        $tasks = DB::table('tasks as ts')
+            ->where('wh.date', '<', $fromYmd)
+            ->sum('wh.released_hour');
+
+        // Single query for all task-hour rows in selected range (avoids N+1 and speeds up page)
+        $rows = DB::table('tasks as ts')
             ->join('weekly_timesheet_project_task_details as wt', 'wt.task_id', '=', 'ts.id')
             ->join('weekly_timesheet_project_task_hours as wh', 'wh.timesheet_project_task_id', '=', 'wt.id')
             ->join('task_status as tst', 'tst.id', '=', 'ts.status')
+            ->join('weekly_timesheet as t', 't.id', '=', 'wt.timesheet_id')
+            ->join('users as u', 'u.id', '=', 't.user_id')
             ->where('ts.project_id', $project)
+            ->where('wh.status', 1)
+            ->where('wt.status', 1)
             ->where('wh.release_status', 1)
-            ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') >= ?", [date('Y-m-d', strtotime($fromDate))])
-            ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') <= ?", [date('Y-m-d', strtotime($toDate))])
-            ->groupBy('ts.id', 'ts.title', 'ts.due_date', 'ts.status', 'tst.title')
-            ->select('ts.id', 'ts.title', 'ts.due_date', 'tst.title as task_status')
+            ->where('wh.date', '>=', $fromYmd)
+            ->where('wh.date', '<=', $toYmd)
+            ->where('wh.released_hour', '>', 0)
+            ->orderBy('ts.id')
+            ->orderBy('wh.date')
+            ->select(
+                'ts.id as task_id',
+                'ts.title as task_title',
+                'ts.due_date',
+                'tst.title as task_status',
+                'wh.date',
+                'wh.released_hour as totalhour',
+                'u.first_name as consultant'
+            )
             ->get();
-        
-        // For each task, get detailed released hours
-        $taskDetails = [];
-        foreach ($tasks as $task) {
-            $hours = DB::table('weekly_timesheet as t')
-                ->join('weekly_timesheet_project_task_details as wp', 'wp.timesheet_id', '=', 't.id')
-                ->join('weekly_timesheet_project_task_hours as wh', 'wh.timesheet_project_task_id', '=', 'wp.id')
-                ->join('users as u', 'u.id', '=', 't.user_id')
-                ->where('wp.task_id', $task->id)
-                ->where('wh.status', 1)
-                ->where('wp.status', 1)
-                ->where('wh.release_status', 1)
-                ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') >= ?", [date('Y-m-d', strtotime($fromDate))])
-                ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') <= ?", [date('Y-m-d', strtotime($toDate))])
-                ->select('wh.released_hour as totalhour', 'wh.date', 'u.first_name as consultant')
-                ->get();
-            
-            $totalHours = 0;
-            $hourEntries = [];
-            foreach ($hours as $hour) {
-                if ($hour->totalhour > 0) {
-                    $hourEntries[] = [
-                        'consultant' => $hour->consultant,
-                        'date' => date('d-M-Y', strtotime($hour->date)),
-                        'totalhr' => $hour->totalhour,
-                    ];
-                    $totalHours += $hour->totalhour;
-                }
+
+        $taskMap = [];
+        foreach ($rows as $row) {
+            if (!isset($taskMap[$row->task_id])) {
+                $taskMap[$row->task_id] = [
+                    'id' => (int) $row->task_id,
+                    'ticket_no' => '#' . str_pad($row->task_id, 5, '0', STR_PAD_LEFT),
+                    'title' => $row->task_title,
+                    'created_at' => date('d-M-Y', strtotime($row->due_date)),
+                    'status' => $row->task_status,
+                    'grouped_hours_map' => [],
+                    'detailed_hours' => [],
+                    'total_hours' => 0,
+                ];
             }
-            
-            $taskDetails[] = [
-                'id' => $task->id,
-                'ticket_no' => '#' . str_pad($task->id, 5, '0', STR_PAD_LEFT),
-                'title' => $task->title,
-                'created_at' => date('d-M-Y', strtotime($task->due_date)),
-                'status' => $task->task_status,
-                'hours' => $hourEntries,
-                'total_hours' => $totalHours,
+
+            $monthKey = date('M-Y', strtotime($row->date));
+            if (!isset($taskMap[$row->task_id]['grouped_hours_map'][$monthKey])) {
+                $taskMap[$row->task_id]['grouped_hours_map'][$monthKey] = 0;
+            }
+            $taskMap[$row->task_id]['grouped_hours_map'][$monthKey] += (float) $row->totalhour;
+
+            $taskMap[$row->task_id]['detailed_hours'][] = [
+                'consultant' => $row->consultant,
+                'date' => date('d-M-Y', strtotime($row->date)),
+                'totalhr' => (float) $row->totalhour,
             ];
+            $taskMap[$row->task_id]['total_hours'] += (float) $row->totalhour;
         }
-        
-        // Calculate summary values
-        $projectHours = $projectData->hours ?? 0;
-        $balanceCf = $projectHours - ($utilizedUptoFromDate->totalhour ?? 0);
-        $hoursUtilized = $utilizedHours->totalhour ?? 0;
+
+        $taskDetails = [];
+        foreach ($taskMap as $task) {
+            $groupedHours = [];
+            foreach ($task['grouped_hours_map'] as $month => $hours) {
+                $groupedHours[] = [
+                    'date' => $month,
+                    'totalhr' => $hours,
+                ];
+            }
+            unset($task['grouped_hours_map']);
+            $task['grouped_hours'] = $groupedHours;
+            $taskDetails[] = $task;
+        }
+
+        $balanceCf = ($projectData->hours ?? 0) - $utilizedUptoFromDate;
         $closingBalance = $balanceCf - $hoursUtilized;
-        
+        $showConsultant = (bool) $user->inGroup(1);
+
         return response()->json([
+            'error' => false,
             'customer' => $customerData,
             'project' => $projectData,
             'balance_cf' => $balanceCf,
@@ -195,6 +209,7 @@ class SupportStatementController extends Controller
             'tasks' => $taskDetails,
             'from_date' => $fromDate,
             'to_date' => $toDate,
+            'show_consultant' => $showConsultant,
         ]);
     }
     
@@ -203,98 +218,120 @@ class SupportStatementController extends Controller
      */
     public function generatePrint(Request $request)
     {
+        $user = auth()->user();
         $customer = $request->input('customer');
-        $project = $request->input('project');
+        $project = (int) $request->input('project');
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
-        
-        // Get customer details
+        $fromYmd = date('Y-m-d', strtotime($fromDate));
+        $toYmd = date('Y-m-d', strtotime($toDate));
+        $showConsultant = $user->inGroup(1) && (bool) $request->input('show_consultant');
+
+        if (!$this->canAccessProject($user, $project)) {
+            abort(403, 'Access Denied');
+        }
+
         $customerData = DB::table('users')
             ->select('company', 'id')
             ->where('id', $customer)
             ->first();
-        
-        // Get project details with status
+
         $projectData = DB::table('projects as p')
             ->join('project_status as ps', 'ps.id', '=', 'p.status')
             ->where('p.id', $project)
             ->select('p.*', 'ps.title as project_status')
             ->first();
-        
-        // Get total released hours in date range
-        $utilizedHours = DB::table('weekly_timesheet as t')
-            ->join('weekly_timesheet_project_task_details as wp', 'wp.timesheet_id', '=', 't.id')
+
+        $hoursUtilized = DB::table('weekly_timesheet_project_task_details as wp')
             ->join('weekly_timesheet_project_task_hours as wh', 'wh.timesheet_project_task_id', '=', 'wp.id')
             ->where('wp.project_id', $project)
-            ->where('wh.status', 1)->where('wp.status', 1)->where('wh.release_status', 1)
-            ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') >= ?", [date('Y-m-d', strtotime($fromDate))])
-            ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') <= ?", [date('Y-m-d', strtotime($toDate))])
-            ->select(DB::raw('COALESCE(SUM(wh.released_hour), 0) as totalhour'))
-            ->first();
-        
-        // Get hours utilized up to from_date
-        $utilizedUptoFromDate = DB::table('weekly_timesheet as t')
-            ->join('weekly_timesheet_project_task_details as wp', 'wp.timesheet_id', '=', 't.id')
+            ->where('wh.status', 1)
+            ->where('wp.status', 1)
+            ->where('wh.release_status', 1)
+            ->where('wh.date', '>=', $fromYmd)
+            ->where('wh.date', '<=', $toYmd)
+            ->sum('wh.released_hour');
+
+        $utilizedUptoFromDate = DB::table('weekly_timesheet_project_task_details as wp')
             ->join('weekly_timesheet_project_task_hours as wh', 'wh.timesheet_project_task_id', '=', 'wp.id')
             ->where('wp.project_id', $project)
-            ->where('wh.status', 1)->where('wp.status', 1)->where('wh.release_status', 1)
-            ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') < ?", [date('Y-m-d', strtotime($fromDate))])
-            ->select(DB::raw('COALESCE(SUM(wh.released_hour), 0) as totalhour'))
-            ->first();
-        
-        // Get tasks
-        $tasks = DB::table('tasks as ts')
+            ->where('wh.status', 1)
+            ->where('wp.status', 1)
+            ->where('wh.release_status', 1)
+            ->where('wh.date', '<', $fromYmd)
+            ->sum('wh.released_hour');
+
+        $rows = DB::table('tasks as ts')
             ->join('weekly_timesheet_project_task_details as wt', 'wt.task_id', '=', 'ts.id')
             ->join('weekly_timesheet_project_task_hours as wh', 'wh.timesheet_project_task_id', '=', 'wt.id')
             ->join('task_status as tst', 'tst.id', '=', 'ts.status')
-            ->where('ts.project_id', $project)->where('wh.release_status', 1)
-            ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') >= ?", [date('Y-m-d', strtotime($fromDate))])
-            ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') <= ?", [date('Y-m-d', strtotime($toDate))])
-            ->groupBy('ts.id', 'ts.title', 'ts.due_date', 'ts.status', 'tst.title')
-            ->select('ts.id', 'ts.title', 'ts.due_date', 'tst.title as task_status')
+            ->join('weekly_timesheet as t', 't.id', '=', 'wt.timesheet_id')
+            ->join('users as u', 'u.id', '=', 't.user_id')
+            ->where('ts.project_id', $project)
+            ->where('wh.status', 1)
+            ->where('wt.status', 1)
+            ->where('wh.release_status', 1)
+            ->where('wh.date', '>=', $fromYmd)
+            ->where('wh.date', '<=', $toYmd)
+            ->where('wh.released_hour', '>', 0)
+            ->orderBy('ts.id')
+            ->orderBy('wh.date')
+            ->select(
+                'ts.id as task_id',
+                'ts.title as task_title',
+                'ts.due_date',
+                'tst.title as task_status',
+                'wh.date',
+                'wh.released_hour as totalhour',
+                'u.first_name as consultant'
+            )
             ->get();
-        
-        $taskDetails = [];
-        foreach ($tasks as $task) {
-            $hours = DB::table('weekly_timesheet as t')
-                ->join('weekly_timesheet_project_task_details as wp', 'wp.timesheet_id', '=', 't.id')
-                ->join('weekly_timesheet_project_task_hours as wh', 'wh.timesheet_project_task_id', '=', 'wp.id')
-                ->join('users as u', 'u.id', '=', 't.user_id')
-                ->where('wp.task_id', $task->id)
-                ->where('wh.status', 1)->where('wp.status', 1)->where('wh.release_status', 1)
-                ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') >= ?", [date('Y-m-d', strtotime($fromDate))])
-                ->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') <= ?", [date('Y-m-d', strtotime($toDate))])
-                ->select('wh.released_hour as totalhour', 'wh.date', 'u.first_name as consultant')
-                ->get();
-            
-            $totalHours = 0;
-            $hourEntries = [];
-            foreach ($hours as $hour) {
-                if ($hour->totalhour > 0) {
-                    $hourEntries[] = [
-                        'consultant' => $hour->consultant,
-                        'date' => date('d-M-Y', strtotime($hour->date)),
-                        'totalhr' => $hour->totalhour,
-                    ];
-                    $totalHours += $hour->totalhour;
-                }
+
+        $taskMap = [];
+        foreach ($rows as $row) {
+            if (!isset($taskMap[$row->task_id])) {
+                $taskMap[$row->task_id] = [
+                    'ticket_no' => '#' . str_pad($row->task_id, 5, '0', STR_PAD_LEFT),
+                    'title' => $row->task_title,
+                    'created_at' => date('d-M-Y', strtotime($row->due_date)),
+                    'status' => $row->task_status,
+                    'grouped_hours_map' => [],
+                    'detailed_hours' => [],
+                    'total_hours' => 0,
+                ];
             }
-            
-            $taskDetails[] = [
-                'ticket_no' => '#' . str_pad($task->id, 5, '0', STR_PAD_LEFT),
-                'title' => $task->title,
-                'created_at' => date('d-M-Y', strtotime($task->due_date)),
-                'status' => $task->task_status,
-                'hours' => $hourEntries,
-                'total_hours' => $totalHours,
+
+            $monthKey = date('M-Y', strtotime($row->date));
+            if (!isset($taskMap[$row->task_id]['grouped_hours_map'][$monthKey])) {
+                $taskMap[$row->task_id]['grouped_hours_map'][$monthKey] = 0;
+            }
+            $taskMap[$row->task_id]['grouped_hours_map'][$monthKey] += (float) $row->totalhour;
+            $taskMap[$row->task_id]['detailed_hours'][] = [
+                'consultant' => $row->consultant,
+                'date' => date('d-M-Y', strtotime($row->date)),
+                'totalhr' => (float) $row->totalhour,
             ];
+            $taskMap[$row->task_id]['total_hours'] += (float) $row->totalhour;
         }
-        
+
+        $taskDetails = [];
+        foreach ($taskMap as $task) {
+            $groupedHours = [];
+            foreach ($task['grouped_hours_map'] as $month => $hours) {
+                $groupedHours[] = [
+                    'date' => $month,
+                    'totalhr' => $hours,
+                ];
+            }
+            unset($task['grouped_hours_map']);
+            $task['grouped_hours'] = $groupedHours;
+            $taskDetails[] = $task;
+        }
+
         $projectHours = $projectData->hours ?? 0;
-        $balanceCf = $projectHours - ($utilizedUptoFromDate->totalhour ?? 0);
-        $hoursUtilized = $utilizedHours->totalhour ?? 0;
+        $balanceCf = $projectHours - $utilizedUptoFromDate;
         $closingBalance = $balanceCf - $hoursUtilized;
-        
+
         return view('support-statement.print', [
             'customer' => $customerData,
             'project' => $projectData,
@@ -304,6 +341,7 @@ class SupportStatementController extends Controller
             'tasks' => $taskDetails,
             'from_date' => $fromDate,
             'to_date' => $toDate,
+            'show_consultant' => $showConsultant,
         ]);
     }
     
@@ -368,5 +406,27 @@ class SupportStatementController extends Controller
     {
         $user = User::find($userId);
         return ($user && $user->cuser_customer) ? $user->cuser_customer : null;
+    }
+
+    private function canAccessProject($user, int $projectId): bool
+    {
+        if ($user->inGroup(1)) {
+            return true;
+        }
+
+        $project = DB::table('projects')->where('id', $projectId)->first();
+        if (!$project) {
+            return false;
+        }
+
+        if ($user->inGroup(3)) {
+            $clientIds = $user->getCustomerClientIds();
+            return in_array($project->client_id, $clientIds) && (int) $project->is_visible === 0;
+        }
+
+        return DB::table('project_users')
+            ->where('project_id', $projectId)
+            ->where('user_id', $user->id)
+            ->exists();
     }
 }
