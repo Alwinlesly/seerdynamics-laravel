@@ -351,8 +351,15 @@
             success: function(response) {
                 if (!response.error) {
                     $('#taskDetailContent').html(response.html);
-                    // Check timer status
-                    checkTimerStatus(taskId);
+                    // Mirror CI flow: customer admin cannot see timer controls in ticket details.
+                    if (response.can_see_time) {
+                        $('#timerBtn').removeClass('d-none');
+                        checkTimerStatus(taskId);
+                    } else {
+                        $('#timerBtn').addClass('d-none');
+                        stopTimerDisplay();
+                    }
+                    loadEstimates(taskId, !!response.can_add_estimate);
                 } else {
                     $('#taskDetailContent').html(`
                         <div class="alert alert-danger">Failed to load task details</div>
@@ -398,18 +405,151 @@
         });
     });
 
-    // Handle estimate calculations
-    $(document).on('input', '#functionalEstimate, #technicalEstimate', function() {
-        const functional = parseFloat($('#functionalEstimate').val()) || 0;
-        const technical = parseFloat($('#technicalEstimate').val()) || 0;
+    // Estimate calculations + form submit
+    $(document).on('input', '#estimateFunc, #estimateTech', function() {
+        const functional = parseFloat($('#estimateFunc').val()) || 0;
+        const technical = parseFloat($('#estimateTech').val()) || 0;
         const totalHours = functional + technical;
-        const days = (totalHours / 8).toFixed(1);
-        const hours = Math.floor(totalHours);
-        const minutes = Math.round((totalHours - hours) * 60);
-        
-        $('#daysEstimate').text(days);
-        $('#hoursEstimate').text(`${hours}:${minutes.toString().padStart(2, '0')}`);
+        const days = totalHours / 8;
+
+        $('#estimateDays').val(days.toFixed(2));
+        $('#estimateHours').val(totalHours.toFixed(2));
+        $('#estimateDaysText').text(days.toFixed(2));
+        $('#estimateHoursText').text(totalHours.toFixed(2));
     });
+
+    $(document).on('submit', '#estimateForm', function(e) {
+        e.preventDefault();
+        const taskId = $(this).data('task-id');
+        const formData = $(this).serialize();
+
+        $.ajax({
+            url: `/tasks/${taskId}/estimates`,
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            data: formData,
+            success: function(response) {
+                if (!response.error) {
+                    showToast('success', response.message || 'Estimate created successfully');
+                    $('#estimateFunc').val('0');
+                    $('#estimateTech').val('0');
+                    $('#estimateDays').val('0');
+                    $('#estimateHours').val('0');
+                    $('#estimateDaysText').text('0.0');
+                    $('#estimateHoursText').text('0.00');
+                    loadEstimates(taskId, true);
+                } else {
+                    showToast('error', response.message || 'Failed to create estimate');
+                }
+            },
+            error: function(xhr) {
+                showToast('error', (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to create estimate');
+            }
+        });
+    });
+
+    $(document).on('click', '.approve-estimate-btn', function(e) {
+        e.preventDefault();
+        const estimateId = $(this).data('id');
+        const taskId = $('#estimateForm').data('task-id') || $('#timerBtn').data('task-id');
+
+        $.ajax({
+            url: `/tasks/estimates/${estimateId}/approve`,
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (!response.error) {
+                    showToast('success', response.message || 'Estimate approved successfully');
+                    loadEstimates(taskId, $('#estimateForm').is(':visible'));
+                } else {
+                    showToast('error', response.message || 'Failed to approve estimate');
+                }
+            },
+            error: function(xhr) {
+                showToast('error', (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to approve estimate');
+            }
+        });
+    });
+
+    function loadEstimates(taskId, canAddEstimate) {
+        $.ajax({
+            url: `/tasks/${taskId}/estimates`,
+            method: 'GET',
+            success: function(response) {
+                if (!response.error) {
+                    renderEstimates(response.data || [], canAddEstimate, taskId);
+                } else {
+                    $('#estimateList').html('<div class="text-muted">Unable to load estimates</div>');
+                    $('#estimateForm').addClass('d-none');
+                }
+            },
+            error: function() {
+                $('#estimateList').html('<div class="text-muted">Unable to load estimates</div>');
+                $('#estimateForm').addClass('d-none');
+            }
+        });
+    }
+
+    function renderEstimates(estimates, canAddEstimate, taskId) {
+        const $form = $('#estimateForm');
+        $form.attr('data-task-id', taskId);
+        if (canAddEstimate) {
+            $form.removeClass('d-none');
+        } else {
+            $form.addClass('d-none');
+        }
+
+        let html = '';
+        if (!estimates || estimates.length === 0) {
+            html = '<div class="text-muted">No estimates available</div>';
+            $('#estimateSaveBtn').text('Add');
+            $('#estimateList').html(html);
+            return;
+        }
+
+        estimates.forEach(function(val) {
+            let approveHtml = '';
+            if (val.can_approve) {
+                approveHtml = `<button class="btn btn-sm btn-primary approve-estimate-btn ms-2" data-id="${val.id}">Approve</button>`;
+            } else if (val.estimate_status === 1) {
+                approveHtml = `<span class="badge bg-success ms-2">Approved</span>`;
+            } else {
+                approveHtml = `<span class="badge bg-warning text-dark ms-2">Approval Pending</span>`;
+            }
+
+            let lines = '';
+            if (val.is_customer) {
+                lines += `<div class="text-muted">Estimate in Days : ${val.estimate_days ?? ''}</div>`;
+                lines += `<div class="text-muted">Estimate in Hours : ${val.estimate_hours ?? ''}</div>`;
+            } else {
+                lines += `<div class="text-muted">Estimate Technical : ${val.estimate_tech ?? ''}</div>`;
+                lines += `<div class="text-muted">Estimate Functional : ${val.estimate_func ?? ''}</div>`;
+                lines += `<div class="text-muted">Estimate in Days : ${val.estimate_days ?? ''}</div>`;
+                lines += `<div class="text-muted">Estimate in Hours : ${val.estimate_hours ?? ''}</div>`;
+            }
+
+            html += `
+                <div class="border rounded p-3 mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <strong>${(val.first_name || '')} ${(val.last_name || '')}</strong>
+                        <div>
+                            <small class="text-muted">${val.created || ''}</small>
+                            ${approveHtml}
+                        </div>
+                    </div>
+                    <div class="mt-2">${lines}</div>
+                    ${val.approved_by ? `<div class="text-success mt-1">${val.approved_by}</div>` : ''}
+                </div>
+            `;
+        });
+
+        $('#estimateSaveBtn').text('Edit');
+        $('#estimateList').html(html);
+    }
 
     // Timer functionality
     let timerInterval = null;

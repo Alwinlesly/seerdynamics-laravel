@@ -23,6 +23,9 @@ class TaskEstimate extends Model
     protected $fillable = [
         'task_id',
         'user_id',
+        'estimate_func',
+        'estimate_tech',
+        'estimate_days',
         'estimate_hours',
         'estimate_status',
         'estimate_approvedby',

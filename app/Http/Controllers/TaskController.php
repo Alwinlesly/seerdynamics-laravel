@@ -279,16 +279,29 @@ class TaskController extends Controller
                 }
             }
             
-            // Check access
+            // Check access (mirror CI condition for customer admin)
             if ($user->inGroup(3) && $task->project) {
                 $clientIds = $user->getCustomerClientIds();
-                if (!in_array($task->project->client_id, $clientIds)) {
+                if (!in_array($task->project->client_id, $clientIds) || (int) $task->project->is_visible !== 0) {
                     if (request()->ajax()) {
                         return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
                     }
                     abort(403, 'Access Denied');
                 }
             }
+
+            // Mirror CI split: task assignees are separated into customer users and consultants/admins.
+            $task->loadMissing('users.groups');
+            $taskCustomerUsers = $task->users->filter(function ($assignedUser) {
+                $groupIds = $assignedUser->groups->pluck('id');
+                return $groupIds->contains(3) || $groupIds->contains(4);
+            })->values();
+            $taskConsultantUsers = $task->users->filter(function ($assignedUser) {
+                $groupIds = $assignedUser->groups->pluck('id');
+                return $groupIds->contains(1) || $groupIds->contains(2);
+            })->values();
+
+            $canSeeTime = !$user->inGroup(3);
 
             // Fetch weekly timesheet entries booked against this task
             $weeklyTimesheetEntries = collect();
@@ -317,10 +330,17 @@ class TaskController extends Controller
 
             // Return partial view for AJAX requests (modal)
             if (request()->ajax()) {
-                $html = view('tasks.partials.detail-content', ['task' => $task, 'weeklyTimesheetEntries' => $weeklyTimesheetEntries])->render();
+                $html = view('tasks.partials.detail-content', [
+                    'task' => $task,
+                    'weeklyTimesheetEntries' => $weeklyTimesheetEntries,
+                    'taskCustomerUsers' => $taskCustomerUsers,
+                    'taskConsultantUsers' => $taskConsultantUsers,
+                ])->render();
                 return response()->json([
                     'error' => false,
-                    'html' => $html
+                    'html' => $html,
+                    'can_see_time' => $canSeeTime,
+                    'can_add_estimate' => ($user->inGroup(1) || $user->inGroup(2)),
                 ]);
             }
 
@@ -907,6 +927,200 @@ class TaskController extends Controller
             \Log::error('Error getting timer status: ' . $e->getMessage());
             return response()->json(['error' => true, 'message' => 'Error getting timer status'], 500);
         }
+    }
+
+    /**
+     * Get estimates for a task (mirror CI get_estimate behavior).
+     */
+    public function getEstimates($id)
+    {
+        try {
+            $user = auth()->user();
+            $task = Task::with('project')->findOrFail($id);
+
+            if (!$this->canAccessTask($user, $task)) {
+                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+            }
+
+            $estimates = TaskEstimate::with(['user', 'approver'])
+                ->where('task_id', $id)
+                ->orderByDesc('created')
+                ->get()
+                ->map(function ($estimate) use ($user) {
+                    $firstName = $estimate->user->first_name ?? '';
+                    $lastName = $estimate->user->last_name ?? '';
+                    $shortName = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
+
+                    $canApprove = ($user->inGroup(3) || $user->inGroup(4)) && (int) $estimate->estimate_status === 0;
+                    $canEdit = ($user->inGroup(1) || $user->inGroup(2)) && (int) $estimate->estimate_status === 0;
+
+                    $approvedBy = '';
+                    if ((int) $estimate->estimate_status === 1 && (int) $estimate->estimate_approvedby > 0 && $estimate->approver) {
+                        $approvedBy = 'Approved By: ' . trim(($estimate->approver->first_name ?? '') . ' ' . ($estimate->approver->last_name ?? ''));
+                    }
+
+                    return [
+                        'id' => $estimate->id,
+                        'task_id' => $estimate->task_id,
+                        'user_id' => $estimate->user_id,
+                        'first_name' => $firstName,
+                        'last_name' => $lastName,
+                        'profile' => $estimate->user->profile ?? null,
+                        'short_name' => $shortName,
+                        'estimate_func' => $estimate->estimate_func,
+                        'estimate_tech' => $estimate->estimate_tech,
+                        'estimate_days' => $estimate->estimate_days,
+                        'estimate_hours' => $estimate->estimate_hours,
+                        'estimate_status' => (int) $estimate->estimate_status,
+                        'estimate_approvedby' => $estimate->estimate_approvedby,
+                        'estimate_approvedon' => $estimate->estimate_approvedon ? date('d-M-Y', strtotime($estimate->estimate_approvedon)) : '',
+                        'created' => $estimate->created ? date('d-M-Y', strtotime($estimate->created)) : '',
+                        'can_delete' => $user->inGroup(1),
+                        'can_edit' => $canEdit,
+                        'can_approve' => $canApprove,
+                        'is_customer' => ($user->inGroup(3) || $user->inGroup(4)),
+                        'approved_by' => $approvedBy,
+                    ];
+                })
+                ->values();
+
+            return response()->json([
+                'error' => false,
+                'data' => $estimates,
+                'message' => 'Successful',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error fetching estimates: ' . $e->getMessage());
+            return response()->json([
+                'error' => true,
+                'message' => 'Error loading estimates',
+            ], 500);
+        }
+    }
+
+    /**
+     * Create estimate (allowed for admin/consultant only; not customer admin).
+     */
+    public function storeEstimate(Request $request, $id)
+    {
+        try {
+            $user = auth()->user();
+            $task = Task::with('project')->findOrFail($id);
+
+            if (!$this->canAccessTask($user, $task)) {
+                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+            }
+
+            if (!$user->inGroup(1) && !$user->inGroup(2)) {
+                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+            }
+
+            $validated = $request->validate([
+                'estimate_func' => 'required|numeric|min:0.01',
+                'estimate_tech' => 'nullable|numeric|min:0',
+                'estimate_days' => 'nullable|numeric|min:0',
+                'estimate_hours' => 'nullable|numeric|min:0',
+            ]);
+
+            $func = (float) $validated['estimate_func'];
+            $tech = (float) ($validated['estimate_tech'] ?? 0);
+            $hours = array_key_exists('estimate_hours', $validated) ? (float) $validated['estimate_hours'] : ($func + $tech);
+            $days = array_key_exists('estimate_days', $validated) ? (float) $validated['estimate_days'] : ($hours / 8);
+
+            TaskEstimate::create([
+                'task_id' => $task->id,
+                'user_id' => $user->id,
+                'estimate_func' => $func,
+                'estimate_tech' => $tech,
+                'estimate_days' => $days,
+                'estimate_hours' => $hours,
+                'estimate_status' => 0,
+                'created' => now(),
+            ]);
+
+            try {
+                EmailService::sendTicketEmail($task->id, 'ESTIMATE', [
+                    'estimate_func' => $func,
+                    'estimate_tech' => $tech,
+                    'estimate_days' => $days,
+                    'estimate_hours' => $hours,
+                ]);
+            } catch (\Exception $emailEx) {
+                \Log::error('Estimate email failed: ' . $emailEx->getMessage());
+            }
+
+            return response()->json([
+                'error' => false,
+                'message' => 'Estimate created successfully.',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error creating estimate: ' . $e->getMessage());
+            return response()->json([
+                'error' => true,
+                'message' => 'Error creating estimate',
+            ], 500);
+        }
+    }
+
+    /**
+     * Approve estimate (allowed for customer admin/customer user only).
+     */
+    public function approveEstimate($estimateId)
+    {
+        try {
+            $user = auth()->user();
+
+            if (!$user->inGroup(3) && !$user->inGroup(4)) {
+                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+            }
+
+            $estimate = TaskEstimate::with('task.project')->findOrFail($estimateId);
+            if (!$estimate->task || !$this->canAccessTask($user, $estimate->task)) {
+                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+            }
+
+            $estimate->update([
+                'estimate_status' => 1,
+                'estimate_approvedon' => now(),
+                'estimate_approvedby' => $user->id,
+            ]);
+
+            try {
+                EmailService::sendTicketEmail($estimate->task_id, 'ESTAPPRV', [
+                    'estimate_id' => $estimate->id,
+                ]);
+            } catch (\Exception $emailEx) {
+                \Log::error('Estimate approval email failed: ' . $emailEx->getMessage());
+            }
+
+            return response()->json([
+                'error' => false,
+                'message' => 'Estimate approved successfully.',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error approving estimate: ' . $e->getMessage());
+            return response()->json([
+                'error' => true,
+                'message' => 'Error approving estimate',
+            ], 500);
+        }
+    }
+
+    private function canAccessTask($user, Task $task): bool
+    {
+        if ($user->inGroup(1)) {
+            return true;
+        }
+
+        if ($user->inGroup(3)) {
+            if (!$task->project) {
+                return false;
+            }
+            $clientIds = $user->getCustomerClientIds();
+            return in_array($task->project->client_id, $clientIds) && (int) $task->project->is_visible === 0;
+        }
+
+        return $task->users()->where('user_id', $user->id)->exists();
     }
     
     /**

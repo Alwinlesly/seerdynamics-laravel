@@ -59,14 +59,22 @@
                     <span class="left-col">Customer user</span> 
                     <div>
                         <div class="d-flex align-items-center avatar-group">
-                            @if($task->project && $task->project->client)
-                            <div class="avatar" title="{{ $task->project->client->first_name }} {{ $task->project->client->last_name }}">
-                                @if($task->project->client->profile_picture)
-                                <img src="{{ asset($task->project->client->profile_picture) }}" alt="{{ $task->project->client->first_name }}">
-                                @else
-                                <div class="avatar-placeholder">{{ strtoupper(substr($task->project->client->first_name, 0, 1)) }}</div>
+                            @if(isset($taskCustomerUsers) && count($taskCustomerUsers) > 0)
+                                @foreach($taskCustomerUsers as $user)
+                                @if($user->id != 1)
+                                <div class="avatar" title="{{ $user->first_name }} {{ $user->last_name }}">
+                                    @if($user->profile_picture)
+                                    <img src="{{ asset($user->profile_picture) }}" alt="{{ $user->first_name }}">
+                                    @elseif($user->profile)
+                                    <img src="{{ asset('assets/uploads/profiles/' . $user->profile) }}" alt="{{ $user->first_name }}">
+                                    @else
+                                    <div class="avatar-placeholder">{{ strtoupper(substr($user->first_name, 0, 1)) }}</div>
+                                    @endif
+                                </div>
                                 @endif
-                            </div>
+                                @endforeach
+                            @else
+                                <span class="text-muted">No customer users assigned</span>
                             @endif
                         </div>
                     </div>
@@ -78,15 +86,19 @@
                     <span class="left-col">Consultants</span>
                     <div>
                         <div class="d-flex align-items-center avatar-group">
-                            @if($task->users && count($task->users) > 0)
-                                @foreach($task->users as $user)
+                            @if(isset($taskConsultantUsers) && count($taskConsultantUsers) > 0)
+                                @foreach($taskConsultantUsers as $user)
+                                @if($user->id != 1)
                                 <div class="avatar" title="{{ $user->first_name }} {{ $user->last_name }}">
                                     @if($user->profile_picture)
                                     <img src="{{ asset($user->profile_picture) }}" alt="{{ $user->first_name }}">
+                                    @elseif($user->profile)
+                                    <img src="{{ asset('assets/uploads/profiles/' . $user->profile) }}" alt="{{ $user->first_name }}">
                                     @else
                                     <div class="avatar-placeholder">{{ strtoupper(substr($user->first_name, 0, 1)) }}</div>
                                     @endif
                                 </div>
+                                @endif
                                 @endforeach
                             @else
                                 <span class="text-muted">No consultants assigned</span>
@@ -314,25 +326,29 @@
         <!-- Estimate Tab -->
         <div class="tab-pane fade" id="estimate" role="tabpanel">
             <div>
-                <form class="row align-items-center g-3 m-0 row-tt">
+                <form class="row align-items-center g-3 m-0 row-tt d-none" id="estimateForm" data-task-id="{{ $task->id }}">
+                    @csrf
                     <div class="col-md-7">
                         <div class="tt-item">
-                            <label for="functionalEstimate" class="form-label mb-0">Functional estimate (hrs)</label>
-                            <input type="text" class="form-control" id="functionalEstimate">
+                            <label for="estimateFunc" class="form-label mb-0">Functional estimate (hrs)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" id="estimateFunc" name="estimate_func" value="0">
                         </div>
                         <div class="tt-item">
-                            <label for="technicalEstimate" class="form-label mb-0">Technical estimate (hrs)</label>
-                            <input type="text" class="form-control" id="technicalEstimate">
+                            <label for="estimateTech" class="form-label mb-0">Technical estimate (hrs)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" id="estimateTech" name="estimate_tech" value="0">
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-5">
                         <div>
-                            <div class="mb-2">Estimate in days : <span id="daysEstimate">0.0</span></div>
-                            <div>Estimate in hours : <span id="hoursEstimate">0:00</span></div>
+                            <div class="mb-2">Estimate in days : <span id="estimateDaysText">0.0</span></div>
+                            <div>Estimate in hours : <span id="estimateHoursText">0.00</span></div>
                         </div>
-                        <button type="submit" class="btn btn-primary add-btn">Add</button>
+                        <input type="hidden" id="estimateDays" name="estimate_days" value="0">
+                        <input type="hidden" id="estimateHours" name="estimate_hours" value="0">
+                        <button type="submit" class="btn btn-primary add-btn mt-2" id="estimateSaveBtn">Add</button>
                     </div>
                 </form>
+                <div id="estimateList" class="mt-3"></div>
             </div>
         </div>
     </div>

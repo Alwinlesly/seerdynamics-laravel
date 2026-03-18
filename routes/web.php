@@ -61,6 +61,11 @@ Route::middleware(['auth'])->group(function () {
         
         // Comment routes
         Route::post('/{id}/comments', [TaskController::class, 'addComment'])->name('tasks.comments.store');
+
+        // Estimate routes
+        Route::get('/{id}/estimates', [TaskController::class, 'getEstimates'])->name('tasks.estimates.list');
+        Route::post('/{id}/estimates', [TaskController::class, 'storeEstimate'])->name('tasks.estimates.store');
+        Route::post('/estimates/{estimateId}/approve', [TaskController::class, 'approveEstimate'])->name('tasks.estimates.approve');
     });
     
     // Customers Routes
