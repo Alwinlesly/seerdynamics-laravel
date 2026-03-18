@@ -179,6 +179,20 @@
 }
 </style>
 <script>
+    function setCreateTaskDefaults() {
+        const today = new Date().toISOString().split('T')[0];
+        $('#issue_date').val(today);
+
+        const $status = $('#status');
+        const todoOption = $status.find('option').filter(function() {
+            return ($(this).val() || '').toLowerCase().replace(/[\s_-]/g, '') === 'todo';
+        }).first();
+
+        if (todoOption.length) {
+            $status.val(todoOption.val());
+        }
+    }
+
     // Initialize select2
     $(document).ready(function() {
         $('#users, #cusers').select2({
@@ -186,6 +200,8 @@
             placeholder: "Select users",
             allowClear: true
         });
+
+        setCreateTaskDefaults();
     });
 
     // Show file name when file is selected
@@ -210,6 +226,7 @@
                 if (!response.error) {
                     $('#createTaskModal').modal('hide');
                     $('#createTaskForm')[0].reset();
+                    setCreateTaskDefaults();
                     // Reset select2 fields if any
                     $('#createTaskForm .select2').val(null).trigger('change');
                     $('#attachmentName').val('');
