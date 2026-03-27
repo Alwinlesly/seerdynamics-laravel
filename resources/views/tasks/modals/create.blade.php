@@ -48,7 +48,7 @@
                             <select class="form-select" id="service" name="service" required>
                                 <option value="">Select Service</option>
                                 @foreach($services as $service)
-                                    <option value="{{ $service->service_id ?? $service->service }}">{{ $service->service }}</option>
+                                    <option value="{{ $service->service }}" data-project="{{ $service->project }}">{{ $service->service }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -179,6 +179,29 @@
 }
 </style>
 <script>
+    function filterCreateServicesByProject() {
+        const selectedProject = String($('#project_id').val() || '');
+        const $service = $('#service');
+
+        $service.find('option').not(':first').each(function() {
+            const optionProject = String($(this).data('project') || '');
+            if (selectedProject !== '' && optionProject === selectedProject) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+
+        const selectedServiceOption = $service.find('option:selected');
+        if (
+            !selectedServiceOption.length ||
+            selectedServiceOption.index() === 0 ||
+            String(selectedServiceOption.data('project') || '') !== selectedProject
+        ) {
+            $service.val('');
+        }
+    }
+
     function setCreateTaskDefaults() {
         const today = new Date().toISOString().split('T')[0];
         $('#issue_date').val(today);
@@ -201,6 +224,17 @@
             allowClear: true
         });
 
+        $('#project_id').on('change', filterCreateServicesByProject);
+
+        $('#createTaskModal').on('show.bs.modal', function() {
+            const pageProject = $('#projectFilter').val();
+            if (pageProject && !$('#project_id').val()) {
+                $('#project_id').val(pageProject);
+            }
+            filterCreateServicesByProject();
+        });
+
+        filterCreateServicesByProject();
         setCreateTaskDefaults();
     });
 

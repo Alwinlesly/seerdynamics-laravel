@@ -74,8 +74,21 @@ class TaskController extends Controller
             $data['customers'] = collect();
         }
 
-        // Get Services for dropdown
-        $data['services'] = DB::table('services')->select('service')->distinct()->get();
+        // Get services mapped by project (used to filter "Select service" by selected project in modal)
+        $projectIds = collect($data['projects'] ?? [])->pluck('id')->filter()->values();
+        $servicesQuery = DB::table('services')
+            ->select('project', 'service')
+            ->whereNotNull('service')
+            ->where('service', '!=', '');
+
+        if ($projectIds->isNotEmpty()) {
+            $servicesQuery->whereIn('project', $projectIds);
+        }
+
+        $data['services'] = $servicesQuery
+            ->distinct()
+            ->orderBy('service')
+            ->get();
 
         // Get Consultant Users
         $data['consultant_users'] = User::whereHas('groups', function($q) {

@@ -699,7 +699,12 @@
         $('#edit_description').val(task.description);
         $('#edit_project_id').val(task.project_id);
         $('#edit_issue_type_id').val(task.issue_type);
-        $('#edit_service').val(task.service);
+        $('#edit_project_id').trigger('change');
+        setEditServiceValue(task.service, task.project_id);
+        // Ensure value stays selected after modal shown hooks run
+        $('#editTaskModal').one('shown.bs.modal', function() {
+            setEditServiceValue(task.service, task.project_id);
+        });
         $('#edit_priority_id').val(task.priority);
         $('#edit_issue_date').val(task.due_date);
         $('#edit_status').val(task.status_title);
@@ -713,6 +718,40 @@
         } else {
             $('#edit_users, #edit_cusers').val(null).trigger('change');
         }
+    }
+
+    function normalizeServiceValue(value) {
+        return String(value || '').trim().toLowerCase();
+    }
+
+    function setEditServiceValue(serviceValue, projectId) {
+        const $service = $('#edit_service');
+        const target = normalizeServiceValue(serviceValue);
+
+        if (!target) {
+            $service.val('');
+            return;
+        }
+
+        let $match = $service.find('option').filter(function() {
+            const optionValue = normalizeServiceValue($(this).val());
+            const optionText = normalizeServiceValue($(this).text());
+            return optionValue === target || optionText === target;
+        }).first();
+
+        if (!$match.length) {
+            const cleanValue = String(serviceValue).trim();
+            $match = $('<option>', {
+                value: cleanValue,
+                text: cleanValue
+            }).attr('data-project', projectId);
+            $service.append($match);
+        } else {
+            $match.attr('data-project', projectId);
+        }
+
+        $match.show();
+        $service.val($match.val());
     }
 </script>
 @endpush

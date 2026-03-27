@@ -14,6 +14,7 @@
                     @csrf
                     @method('PUT')
                     <input type="hidden" id="edit_task_id" name="task_id">
+                    <input type="hidden" id="edit_project_id" name="project_id">
 
                     <div class="mb-3">
                         <label for="edit_title" class="form-label">Ticket title <span class="req">*</span></label>
@@ -26,16 +27,6 @@
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <label for="edit_project_id" class="form-label">Project <span class="req">*</span></label>
-                            <select class="form-select" id="edit_project_id" name="project_id" required>
-                                <option value="">Select project</option>
-                                @foreach($projects as $project)
-                                    <option value="{{ $project->id }}">{{ $project->project_id }} - {{ $project->title }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
                         <div class="col-md-4">
                             <label for="edit_issue_type_id" class="form-label">Issue type <span class="req">*</span></label>
                             <select class="form-select" id="edit_issue_type_id" name="issue_type_id" required>
@@ -51,13 +42,10 @@
                             <select class="form-select" id="edit_service" name="service" required>
                                 <option value="">Select Service</option>
                                 @foreach($services as $service)
-                                    <option value="{{ $service->service_id ?? $service->service }}">{{ $service->service }}</option>
+                                    <option value="{{ $service->service }}" data-project="{{ $service->project }}">{{ $service->service }}</option>
                                 @endforeach
                             </select>
                         </div>
-                    </div>
-
-                    <div class="row g-3 mb-3">
                         <div class="col-md-4">
                             <label for="edit_priority_id" class="form-label">Priority <span class="req">*</span></label>
                             <select class="form-select" id="edit_priority_id" name="priority_id" required>
@@ -67,25 +55,15 @@
                                 @endforeach
                             </select>
                         </div>
+                    </div>
 
+                    <div class="row g-3 mb-3">
                         <div class="col-md-4">
                             <label for="edit_issue_date" class="form-label">Issue date <span class="req">*</span></label>
                             <input type="date" class="form-control" id="edit_issue_date" name="issue_date" required>
                         </div>
 
                         <div class="col-md-4">
-                            <label for="edit_status" class="form-label">Status <span class="req">*</span></label>
-                            <select class="form-select" id="edit_status" name="status" required>
-                                <option value="">Select status</option>
-                                @foreach($task_statuses as $status)
-                                    <option value="{{ $status->title }}">{{ $status->title }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-12">
                             <label for="edit_attachment" class="form-label">Attachment/Screenshot</label>
                             <div class="chat-input py-0">
                                 <div class="left-ci d-flex align-items-center gap-0">
@@ -96,6 +74,16 @@
                                     </label>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="edit_status" class="form-label">Status <span class="req">*</span></label>
+                            <select class="form-select" id="edit_status" name="status" required>
+                                <option value="">Select status</option>
+                                @foreach($task_statuses as $status)
+                                    <option value="{{ $status->title }}">{{ $status->title }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
 
@@ -182,6 +170,38 @@
 }
 </style>
 <script>
+    function filterEditServicesByProject() {
+        const selectedProject = String($('#edit_project_id').val() || '');
+        const $service = $('#edit_service');
+        const seenServices = {};
+
+        $service.find('option').not(':first').each(function() {
+            const $option = $(this);
+            const optionProject = String($(this).attr('data-project') || '');
+            const normalized = String($option.text() || '').trim().toLowerCase();
+
+            if (selectedProject !== '' && optionProject === selectedProject) {
+                if (normalized && seenServices[normalized]) {
+                    $option.hide();
+                } else {
+                    seenServices[normalized] = true;
+                    $option.show();
+                }
+            } else {
+                $option.hide();
+            }
+        });
+
+        const selectedServiceOption = $service.find('option:selected');
+        if (
+            !selectedServiceOption.length ||
+            selectedServiceOption.index() === 0 ||
+            String(selectedServiceOption.attr('data-project') || '') !== selectedProject
+        ) {
+            $service.val('');
+        }
+    }
+
     // Initialize select2
     $(document).ready(function() {
         $('#edit_users, #edit_cusers').select2({
@@ -189,6 +209,10 @@
             placeholder: "Select users",
             allowClear: true
         });
+
+        $('#edit_project_id').on('change', filterEditServicesByProject);
+        $('#editTaskModal').on('shown.bs.modal', filterEditServicesByProject);
+        filterEditServicesByProject();
     });
 
     // Show file name when file is selected
