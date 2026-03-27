@@ -144,6 +144,52 @@
         font-size: 1.5rem;
         font-weight: bold;
     }
+
+    /* Improve low-contrast text and checkbox visibility on this page */
+    .tbl-ticket-release .c9A9A9A,
+    .tbl-ticket-release .date-sm,
+    .tbl-ticket-release .pc_sup_hrs,
+    .tbl-ticket-release .isApproved span,
+    .tbl-ticket-release .ttl-estimate span:last-child {
+        color: #4a4a4a !important;
+    }
+
+    .tbl-ticket-release input.custom-checkbox {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid #8d8d8d;
+        border-radius: 3px;
+        background: #fff;
+        display: inline-grid;
+        place-content: center;
+        cursor: pointer;
+    }
+
+    .tbl-ticket-release input.custom-checkbox::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        transform: scale(0);
+        transition: transform 0.1s ease-in-out;
+        background: #fff;
+        clip-path: polygon(14% 44%, 0 59%, 40% 100%, 100% 20%, 84% 6%, 39% 62%);
+    }
+
+    .tbl-ticket-release input.custom-checkbox:checked {
+        border-color: #513998;
+        background: #513998;
+    }
+
+    .tbl-ticket-release input.custom-checkbox:checked::before {
+        transform: scale(1);
+    }
+
+    .tbl-ticket-release input.custom-checkbox:disabled {
+        opacity: 1;
+        cursor: not-allowed;
+    }
 </style>
 @endpush
 
