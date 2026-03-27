@@ -1189,7 +1189,7 @@ class TaskController extends Controller
             $task = Task::with('project')->findOrFail($id);
 
             // Existing project behavior: customer admin can close completed tickets.
-            if (!$user->inGroup(3)) {
+            if (!$user->inGroup(3) && !$user->inGroup(4)) {
                 return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
             }
 

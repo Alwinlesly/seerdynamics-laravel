@@ -157,9 +157,9 @@
 
 @push('scripts')
 <script>
-    const canEditTaskAction = @json(!auth()->user()->inGroup(3));
-    const canDeleteTaskAction = @json(!auth()->user()->inGroup(2) && !auth()->user()->inGroup(3));
-    const canCloseTaskAction = @json(auth()->user()->inGroup(3));
+    const canEditTaskAction = @json(!auth()->user()->inGroup(3) && !auth()->user()->inGroup(4));
+    const canDeleteTaskAction = @json(!auth()->user()->inGroup(2) && !auth()->user()->inGroup(3) && !auth()->user()->inGroup(4));
+    const canCloseTaskAction = @json(auth()->user()->inGroup(3) || auth()->user()->inGroup(4));
     let currentPage = 1;
     let totalRecords = 0;
     const limit = 20;
@@ -292,7 +292,7 @@
                         </span>
                     ` : ''}
                     ${canShowClose ? `
-                        <span class="close-task" data-id="${task.id}" style="cursor: pointer;" title="Close ticket">
+                        <span class="close-ticket-popup" data-id="${task.id}" style="cursor: pointer;" title="Close Ticket">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="9"></circle>
                                 <path d="M8 8l8 8M16 8l-8 8"></path>
@@ -680,7 +680,57 @@
     $('#taskDetailModal').on('hidden.bs.modal', function() {
         stopTimerDisplay();
     });
+    let originalEditStatusOptionsHtml = null;
 
+    function applyCloseModeStatusOptions() {
+        const $status = $('#edit_status');
+        if (!$status.length) return;
+
+        if (originalEditStatusOptionsHtml === null) {
+            originalEditStatusOptionsHtml = $status.html();
+        }
+
+        const closedOption = $status.find('option').filter(function() {
+            return String($(this).text() || '').trim().toLowerCase() === 'closed';
+        }).first();
+
+        if (closedOption.length) {
+            const closedValue = closedOption.val();
+            $status.html(`<option value="${closedValue}">Closed</option>`);
+            $status.val(closedValue);
+            $status.trigger('change.select2');
+        }
+    }
+
+    function restoreEditStatusOptions() {
+        const $status = $('#edit_status');
+        if (!$status.length || originalEditStatusOptionsHtml === null) return;
+
+        const currentValue = $status.val();
+        $status.html(originalEditStatusOptionsHtml);
+        if ($status.find(`option[value="${currentValue}"]`).length) {
+            $status.val(currentValue);
+        }
+        $status.trigger('change.select2');
+    }
+
+    // Toggle edit modal mode: full edit vs close-only view.
+    function setEditTaskModalMode(mode) {
+        const isCloseMode = mode === 'close';
+        const $modal = $('#editTaskModal');
+        $modal.toggleClass('close-mode', isCloseMode);
+        $('#editTaskModalLabel').text(isCloseMode ? 'Close ticket' : 'Edit ticket');
+
+        if (isCloseMode) {
+            applyCloseModeStatusOptions();
+        } else {
+            restoreEditStatusOptions();
+        }
+    }
+
+    $('#editTaskModal').on('hidden.bs.modal', function() {
+        setEditTaskModalMode('edit');
+    });
     // Edit task
     $(document).on('click', '.edit-task', function() {
         if (!canEditTaskAction) return;
@@ -691,6 +741,7 @@
             method: 'GET',
             success: function(response) {
                 if (!response.error) {
+                    setEditTaskModalMode('edit');
                     populateEditForm(response.task);
                     $('#editTaskModal').modal('show');
                 }
@@ -709,44 +760,77 @@
         $('#deleteTaskModal').modal('show');
     });
 
-    // Close task (customer admin flow)
-    $(document).on('click', '.close-task', function() {
+    // Close ticket (customer admin flow): open edit popup like existing project.
+    $(document).on('click', '.close-ticket-popup', function(e) {
+        e.preventDefault();
         if (!canCloseTaskAction) return;
-        const taskId = $(this).data('id');
 
+        setEditTaskModalMode('close');
+        const taskId = $(this).data('id');
         $.ajax({
-            url: `/tasks/${taskId}/close`,
-            method: 'POST',
-            data: { _token: '{{ csrf_token() }}' },
+            url: `/tasks/${taskId}/edit`,
+            method: 'GET',
             success: function(response) {
                 if (!response.error) {
-                    showToast('success', response.message || 'Ticket closed successfully');
-                    loadTasks();
-                } else {
-                    showToast('error', response.message || 'Unable to close ticket');
+                    setEditTaskModalMode('close');
+                    populateEditForm(response.task);
+
+                    const $status = $('#edit_status');
+                    const closedValue = $status.find('option').filter(function() {
+                        return String($(this).text() || '').trim().toLowerCase() === 'closed';
+                    }).first().val();
+
+                    if (closedValue) {
+                        $status.val(closedValue).trigger('change');
+                    }
+
+                    $('#editTaskModal').modal('show');
                 }
             },
-            error: function(xhr) {
-                showToast('error', (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Unable to close ticket');
+            error: function() {
+                showToast('error', 'Error loading task data');
             }
         });
     });
 
     function populateEditForm(task) {
+        function setSelectValueSmart(selector, value) {
+            const $select = $(selector);
+            const raw = value == null ? '' : String(value);
+            const normalized = raw.toLowerCase().replace(/[\s_-]/g, '');
+
+            // 1) Exact value match
+            let $match = $select.find('option').filter(function() {
+                return String($(this).val() || '') === raw;
+            }).first();
+
+            // 2) Normalized value/text match fallback
+            if (!$match.length && normalized) {
+                $match = $select.find('option').filter(function() {
+                    const ov = String($(this).val() || '').toLowerCase().replace(/[\s_-]/g, '');
+                    const ot = String($(this).text() || '').toLowerCase().replace(/[\s_-]/g, '');
+                    return ov === normalized || ot === normalized;
+                }).first();
+            }
+
+            $select.val($match.length ? $match.val() : '');
+            $select.trigger('change');
+        }
+
         $('#edit_task_id').val(task.id);
         $('#edit_title').val(task.title);
         $('#edit_description').val(task.description);
         $('#edit_project_id').val(task.project_id);
-        $('#edit_issue_type_id').val(task.issue_type);
+        setSelectValueSmart('#edit_issue_type_id', task.issue_type);
         $('#edit_project_id').trigger('change');
         setEditServiceValue(task.service, task.project_id);
         // Ensure value stays selected after modal shown hooks run
         $('#editTaskModal').one('shown.bs.modal', function() {
             setEditServiceValue(task.service, task.project_id);
         });
-        $('#edit_priority_id').val(task.priority);
+        setSelectValueSmart('#edit_priority_id', task.priority);
         $('#edit_issue_date').val(task.due_date);
-        $('#edit_status').val(task.status_title);
+        setSelectValueSmart('#edit_status', task.status_title);
         $('#edit_additional_mail').val(task.additional_mail);
         const attachmentName = task.attachment ? String(task.attachment).split('/').pop() : '';
         $('#editAttachmentName').val(attachmentName);

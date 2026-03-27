@@ -16,17 +16,17 @@
                     <input type="hidden" id="edit_task_id" name="task_id">
                     <input type="hidden" id="edit_project_id" name="project_id">
 
-                    <div class="mb-3">
+                    <div class="mb-3 edit-full-only">
                         <label for="edit_title" class="form-label">Ticket title <span class="req">*</span></label>
                         <input type="text" class="form-control" id="edit_title" name="title" required>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-3 edit-full-only">
                         <label for="edit_description" class="form-label">Description <span class="req">*</span></label>
                         <textarea class="form-control" id="edit_description" name="description" rows="3" required></textarea>
                     </div>
 
-                    <div class="row g-3 mb-3">
+                    <div class="row g-3 mb-3 edit-full-only">
                         <div class="col-md-4">
                             <label for="edit_issue_type_id" class="form-label">Issue type <span class="req">*</span></label>
                             <select class="form-select" id="edit_issue_type_id" name="issue_type_id" required>
@@ -58,12 +58,12 @@
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-md-4">
+                        <div class="col-md-4 edit-full-only">
                             <label for="edit_issue_date" class="form-label">Issue date <span class="req">*</span></label>
                             <input type="date" class="form-control" id="edit_issue_date" name="issue_date" required>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-4 edit-full-only">
                             <label for="edit_attachment" class="form-label">Attachment/Screenshot</label>
                             <div class="chat-input py-0">
                                 <div class="left-ci d-flex align-items-center gap-0">
@@ -76,7 +76,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-4 edit-status-only">
                             <label for="edit_status" class="form-label">Status <span class="req">*</span></label>
                             <select class="form-select" id="edit_status" name="status" required>
                                 <option value="">Select status</option>
@@ -88,7 +88,7 @@
                     </div>
 
                     @if(auth()->user()->inGroup(1))
-                    <div class="mb-3">
+                    <div class="mb-3 edit-full-only">
                         <label for="edit_users" class="form-label">Assign Consultants <i class="fas fa-question-circle" data-bs-toggle="tooltip" data-bs-placement="right" title="Assign task to the users who will work on this task. Only these users are able to see this task."></i></label>
                         <select name="users[]" id="edit_users" class="form-control select2" multiple>     
                             @foreach($consultant_users as $consultant)
@@ -99,7 +99,7 @@
                     @endif
 
                     @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(3) || auth()->user()->inGroup(4))
-                    <div class="mb-3">
+                    <div class="mb-3 edit-full-only">
                         <label for="edit_cusers" class="form-label">Assign Users</label>
                         <select name="users[]" id="edit_cusers" class="form-control select2" multiple>      
                             @foreach($other_cusers as $cuser)
@@ -110,7 +110,7 @@
                         </select>
                     </div>
                     @endif                    <div class="mb-4 add-mail">
-                        <div class="add-mail-left">
+                        <div class="add-mail-left edit-full-only">
                             <label for="edit_additional_mail" class="form-label">Additional mail</label>
                             <input type="email" class="form-control" id="edit_additional_mail" name="additional_mail" placeholder="example@example.com">
                         </div>
@@ -169,6 +169,13 @@
     color: #fff;
 }
 
+#editTaskModal.close-mode .edit-full-only {
+    display: none !important;
+}
+#editTaskModal.close-mode .edit-status-only {
+    flex: 0 0 100%;
+    max-width: 100%;
+}
 /* Keep Select2 dropdown aligned with fields inside scrolling modal body */
 #editTaskModal .modal-body {
     position: relative;
