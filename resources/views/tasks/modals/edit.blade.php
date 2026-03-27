@@ -170,48 +170,93 @@
 }
 </style>
 <script>
+    let editServiceMasterOptions = [];
+
+    function cacheEditServiceOptions() {
+        editServiceMasterOptions = $('#edit_service option').not(':first').map(function() {
+            return {
+                value: String($(this).val() || ''),
+                text: String($(this).text() || ''),
+                project: String($(this).attr('data-project') || '')
+            };
+        }).get();
+    }
+
+    function initEditTaskSearchSelects() {
+        const $modal = $('#editTaskModal');
+        const singleSelector = '#edit_issue_type_id, #edit_service, #edit_priority_id, #edit_status';
+
+        $(singleSelector).each(function() {
+            const $select = $(this);
+            if ($select.hasClass('select2-hidden-accessible')) {
+                return;
+            }
+            const isServiceSelect = $select.attr('id') === 'edit_service';
+            $select.select2({
+                width: '100%',
+                dropdownParent: $modal,
+                minimumResultsForSearch: isServiceSelect ? Infinity : 0
+            });
+        });
+    }
+
     function filterEditServicesByProject() {
         const selectedProject = String($('#edit_project_id').val() || '');
         const $service = $('#edit_service');
+        const currentValue = String($service.val() || '');
+
         const seenServices = {};
-
-        $service.find('option').not(':first').each(function() {
-            const $option = $(this);
-            const optionProject = String($(this).attr('data-project') || '');
-            const normalized = String($option.text() || '').trim().toLowerCase();
-
-            if (selectedProject !== '' && optionProject === selectedProject) {
-                if (normalized && seenServices[normalized]) {
-                    $option.hide();
-                } else {
-                    seenServices[normalized] = true;
-                    $option.show();
-                }
-            } else {
-                $option.hide();
+        const filtered = editServiceMasterOptions.filter(function(opt) {
+            if (selectedProject === '' || opt.project !== selectedProject) {
+                return false;
             }
+            const normalized = opt.text.trim().toLowerCase();
+            if (normalized && seenServices[normalized]) {
+                return false;
+            }
+            seenServices[normalized] = true;
+            return true;
         });
 
-        const selectedServiceOption = $service.find('option:selected');
-        if (
-            !selectedServiceOption.length ||
-            selectedServiceOption.index() === 0 ||
-            String(selectedServiceOption.attr('data-project') || '') !== selectedProject
-        ) {
+        $service.find('option').not(':first').remove();
+        filtered.forEach(function(opt) {
+            $service.append(
+                $('<option>', { value: opt.value, text: opt.text }).attr('data-project', opt.project)
+            );
+        });
+
+        if (currentValue && filtered.some(function(opt) { return opt.value === currentValue; })) {
+            $service.val(currentValue);
+        } else {
             $service.val('');
         }
+
+        // Keep Select2 in sync without destroy/re-init (prevents UI glitching).
+        $service.trigger('change.select2');
     }
 
     // Initialize select2
     $(document).ready(function() {
+        cacheEditServiceOptions();
+
         $('#edit_users, #edit_cusers').select2({
             width: '100%',
             placeholder: "Select users",
             allowClear: true
         });
+        initEditTaskSearchSelects();
 
         $('#edit_project_id').on('change', filterEditServicesByProject);
-        $('#editTaskModal').on('shown.bs.modal', filterEditServicesByProject);
+        $('#editTaskModal').on('shown.bs.modal', function() {
+            if (!editServiceMasterOptions.length) {
+                cacheEditServiceOptions();
+            }
+            initEditTaskSearchSelects();
+            filterEditServicesByProject();
+        });
+        $('#editTaskModal .modal-body').on('scroll', function() {
+            $('#editTaskModal select.select2-hidden-accessible').select2('close');
+        });
         filterEditServicesByProject();
     });
 

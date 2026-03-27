@@ -179,27 +179,69 @@
 }
 </style>
 <script>
+    let createServiceMasterOptions = [];
+
+    function cacheCreateServiceOptions() {
+        createServiceMasterOptions = $('#service option').not(':first').map(function() {
+            return {
+                value: String($(this).val() || ''),
+                text: String($(this).text() || ''),
+                project: String($(this).attr('data-project') || '')
+            };
+        }).get();
+    }
+
+    function initCreateTaskSearchSelects() {
+        const $modal = $('#createTaskModal');
+        const singleSelector = '#project_id, #issue_type_id, #service, #priority_id, #status';
+
+        $(singleSelector).each(function() {
+            const $select = $(this);
+            if ($select.hasClass('select2-hidden-accessible')) {
+                return;
+            }
+            const isServiceSelect = $select.attr('id') === 'service';
+            $select.select2({
+                width: '100%',
+                dropdownParent: $modal,
+                minimumResultsForSearch: isServiceSelect ? Infinity : 0
+            });
+        });
+    }
+
     function filterCreateServicesByProject() {
         const selectedProject = String($('#project_id').val() || '');
         const $service = $('#service');
+        const currentValue = String($service.val() || '');
 
-        $service.find('option').not(':first').each(function() {
-            const optionProject = String($(this).data('project') || '');
-            if (selectedProject !== '' && optionProject === selectedProject) {
-                $(this).show();
-            } else {
-                $(this).hide();
+        const seenServices = {};
+        const filtered = createServiceMasterOptions.filter(function(opt) {
+            if (selectedProject === '' || opt.project !== selectedProject) {
+                return false;
             }
+            const normalized = opt.text.trim().toLowerCase();
+            if (normalized && seenServices[normalized]) {
+                return false;
+            }
+            seenServices[normalized] = true;
+            return true;
         });
 
-        const selectedServiceOption = $service.find('option:selected');
-        if (
-            !selectedServiceOption.length ||
-            selectedServiceOption.index() === 0 ||
-            String(selectedServiceOption.data('project') || '') !== selectedProject
-        ) {
+        $service.find('option').not(':first').remove();
+        filtered.forEach(function(opt) {
+            $service.append(
+                $('<option>', { value: opt.value, text: opt.text }).attr('data-project', opt.project)
+            );
+        });
+
+        if (currentValue && filtered.some(function(opt) { return opt.value === currentValue; })) {
+            $service.val(currentValue);
+        } else {
             $service.val('');
         }
+
+        // Keep Select2 in sync without destroy/re-init (prevents UI glitching).
+        $service.trigger('change.select2');
     }
 
     function setCreateTaskDefaults() {
@@ -218,11 +260,14 @@
 
     // Initialize select2
     $(document).ready(function() {
+        cacheCreateServiceOptions();
+
         $('#users, #cusers').select2({
             width: '100%',
             placeholder: "Select users",
             allowClear: true
         });
+        initCreateTaskSearchSelects();
 
         $('#project_id').on('change', filterCreateServicesByProject);
 
@@ -231,7 +276,14 @@
             if (pageProject && !$('#project_id').val()) {
                 $('#project_id').val(pageProject);
             }
+            if (!createServiceMasterOptions.length) {
+                cacheCreateServiceOptions();
+            }
+            initCreateTaskSearchSelects();
             filterCreateServicesByProject();
+        });
+        $('#createTaskModal .modal-body').on('scroll', function() {
+            $('#createTaskModal select.select2-hidden-accessible').select2('close');
         });
 
         filterCreateServicesByProject();
