@@ -157,6 +157,45 @@
 .table-for-create {
     padding: 0;
 }
+
+/* Keep top filter row spacious and prevent overlaps */
+.create-ticket-body {
+    padding: 0 !important;
+}
+
+.ctb-row {
+    width: 100% !important;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.ctb-row .form-select,
+.ctb-row .form-control {
+    width: 100%;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ctb-row .input-group.date {
+    position: relative;
+}
+
+.ctb-row .input-group.date .form-control {
+    padding-right: 2.4rem;
+}
+
+.ctb-row .input-group.date .input-group-addon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    border: 0;
+    background: transparent;
+    padding: 0;
+}
 </style>
 @endpush
 

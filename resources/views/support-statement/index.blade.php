@@ -23,6 +23,15 @@
         font-size: 0.95rem;
     }
 
+    .ct-body .form-select {
+        width: 100%;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-right: 2rem;
+    }
+
     #reportContainer {
         display: none;
     }
@@ -265,6 +274,11 @@
             autoclose: true,
             orientation: 'bottom auto'
         });
+
+        // Default both date filters to today
+        var today = new Date();
+        $('#fromDateFilter').datepicker('setDate', today);
+        $('#toDateFilter').datepicker('setDate', today);
 
         // Customer change - update projects
         $('#customerFilter').on('change', function() {
