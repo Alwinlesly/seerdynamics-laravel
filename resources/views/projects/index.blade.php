@@ -303,11 +303,6 @@ $(document).on('click', '.edit-project', function() {
                 $('#edit_client_id').val(project.client_id);
                 $('#edit_project_manager').val(project.manager_id || '');
                 
-                // Handle assigned consultants
-                if (project.assigned_users && project.assigned_users.length > 0) {
-                    $('#edit_assigned_consultants').val(project.assigned_users.join(','));
-                }
-                
                 // Checkboxes
                 $('#editDefaultProject').prop('checked', project.is_default == 1);
                 $('#editVisibleToCustomer').prop('checked', project.is_visible == 1);

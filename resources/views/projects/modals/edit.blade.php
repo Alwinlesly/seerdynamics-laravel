@@ -109,7 +109,7 @@
                     </div>
 
                     <div class="row mb-3">
-                        <div class="col-lg-6">
+                        <div class="col-lg-12">
                             <label class="form-label">Project manager</label>
                             <select class="form-select" id="edit_project_manager" name="project_manager">
                                 <option value="">Select manager</option>
@@ -117,10 +117,6 @@
                                 <option value="{{ $consultant->id }}">{{ $consultant->first_name }} {{ $consultant->last_name }}</option>
                                 @endforeach
                             </select>
-                        </div>
-                        <div class="col-lg-6">
-                            <label class="form-label">Assign consultants</label>
-                            <input type="text" class="form-control" id="edit_assigned_consultants" name="assigned_consultants" placeholder="Comma separated user IDs">
                         </div>
                     </div>
 
