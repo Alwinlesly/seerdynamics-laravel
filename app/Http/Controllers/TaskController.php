@@ -617,11 +617,16 @@ class TaskController extends Controller
             
             $task->update($validated);
             
-            // Update users (Consultants and Customer Users)
-            if ($request->has('users') && is_array($request->users)) {
-                $task->users()->sync($request->users);
-            } else {
-                $task->users()->sync([]);
+            // Update assignees only when users[] is explicitly submitted.
+            // This preserves existing task_users for consultant edits where
+            // assign-users controls are not present in the modal.
+            if ($request->has('users')) {
+                $users = $request->users;
+                if (is_array($users)) {
+                    $task->users()->sync($users);
+                } else {
+                    $task->users()->sync([]);
+                }
             }
             
             // Send email notifications based on status change (replicating CI logic)
