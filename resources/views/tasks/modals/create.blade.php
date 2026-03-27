@@ -73,10 +73,19 @@
                         <div class="col-md-4">
                             <label for="status" class="form-label">Status <span class="req">*</span></label>
                             <select class="form-select" id="status" name="status" required>
-                                <option value="">Select status</option>
-                                @foreach($task_statuses as $status)
-                                    <option value="{{ $status->title }}">{{ $status->title }}</option>
-                                @endforeach
+                                @php
+                                    $todoStatus = collect($task_statuses)->first(function ($statusItem) {
+                                        return strtolower(preg_replace('/[\s_-]+/', '', $statusItem->title)) === 'todo';
+                                    });
+                                @endphp
+                                @if(auth()->user()->inGroup(3) && $todoStatus)
+                                    <option value="{{ $todoStatus->title }}" selected>{{ $todoStatus->title }}</option>
+                                @else
+                                    <option value="">Select status</option>
+                                    @foreach($task_statuses as $status)
+                                        <option value="{{ $status->title }}">{{ $status->title }}</option>
+                                    @endforeach
+                                @endif
                             </select>
                         </div>
                     </div>
@@ -253,17 +262,21 @@
         $service.trigger('change.select2');
     }
 
+    const isCreateTaskCustomerAdmin = @json(auth()->user()->inGroup(3));
+
     function setCreateTaskDefaults() {
         const today = new Date().toISOString().split('T')[0];
         $('#issue_date').val(today);
 
-        const $status = $('#status');
-        const todoOption = $status.find('option').filter(function() {
-            return ($(this).val() || '').toLowerCase().replace(/[\s_-]/g, '') === 'todo';
-        }).first();
+        if (isCreateTaskCustomerAdmin) {
+            const $status = $('#status');
+            const todoOption = $status.find('option').filter(function() {
+                return ($(this).val() || '').toLowerCase().replace(/[\s_-]/g, '') === 'todo';
+            }).first();
 
-        if (todoOption.length) {
-            $status.val(todoOption.val());
+            if (todoOption.length) {
+                $status.val(todoOption.val());
+            }
         }
     }
 

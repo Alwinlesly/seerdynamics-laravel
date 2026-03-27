@@ -69,8 +69,13 @@ class TimesheetController extends Controller
             $offset = $request->input('offset', 0);
             $limit  = $request->input('limit', 10);
             $sort   = $request->input('sort', 'id');
-            $order  = $request->input('order', 'ASC');
+            $order  = strtoupper($request->input('order', 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
             $search = $request->input('search', '');
+
+            $allowedSorts = ['id', 'work_week', 'created'];
+            if (!in_array($sort, $allowedSorts, true)) {
+                $sort = 'id';
+            }
             
             // Base query with user join and calculated fields using subqueries
             $query = WeeklyTimesheet::query()

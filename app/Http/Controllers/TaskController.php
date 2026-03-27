@@ -489,9 +489,16 @@ class TaskController extends Controller
         ]);
         
         try {
-            // Get status ID from title
-            $status = TaskStatus::where('title', $request->status)->first();
-            $validated['status'] = $status ? $status->id : 1;
+            // For customer admin, force status to To Do; others use submitted status
+            if (auth()->user()->inGroup(3)) {
+                $todoStatus = TaskStatus::all()->first(function ($statusItem) {
+                    return strtolower(preg_replace('/[\s_-]+/', '', $statusItem->title)) === 'todo';
+                });
+                $validated['status'] = $todoStatus ? $todoStatus->id : 1;
+            } else {
+                $status = TaskStatus::where('title', $request->status)->first();
+                $validated['status'] = $status ? $status->id : 1;
+            }
             
             // Get priority ID from request or use default
             $validated['priority'] = $request->priority_id ?? 1;
@@ -1167,6 +1174,62 @@ class TaskController extends Controller
             return response()->json([
                 'error' => true,
                 'message' => 'Error approving estimate',
+            ], 500);
+        }
+    }
+
+    /**
+     * Close ticket from tasks list (customer admin flow):
+     * allowed only when current status is Completed.
+     */
+    public function close($id)
+    {
+        try {
+            $user = auth()->user();
+            $task = Task::with('project')->findOrFail($id);
+
+            // Existing project behavior: customer admin can close completed tickets.
+            if (!$user->inGroup(3)) {
+                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+            }
+
+            if (!$this->canAccessTask($user, $task)) {
+                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+            }
+
+            $completedStatus = TaskStatus::where('title', 'Completed')->first();
+            $closedStatus = TaskStatus::where('title', 'Closed')->first();
+
+            if (!$closedStatus) {
+                return response()->json(['error' => true, 'message' => 'Closed status is not configured'], 422);
+            }
+
+            if ($completedStatus && (int) $task->status !== (int) $completedStatus->id) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Only completed tickets can be closed'
+                ], 422);
+            }
+
+            $task->status = $closedStatus->id;
+            $task->closed_date = now();
+            $task->save();
+
+            try {
+                EmailService::sendTicketEmail($task->id, 'TKTCLOSE', []);
+            } catch (\Exception $emailEx) {
+                \Log::error('Ticket close email failed: ' . $emailEx->getMessage());
+            }
+
+            return response()->json([
+                'error' => false,
+                'message' => 'Ticket closed successfully'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error closing ticket: ' . $e->getMessage());
+            return response()->json([
+                'error' => true,
+                'message' => 'Error closing ticket'
             ], 500);
         }
     }

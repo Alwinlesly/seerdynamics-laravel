@@ -51,6 +51,19 @@
 .timesheet-table .form-select {
     font-size: 12px; padding: 4px 8px; min-width: 110px;
     background-color: #fff; border: 1px solid #dee2e6; color: #2B2B2B;
+    width: 100%;
+    max-width: 100%;
+    padding-right: 2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Prevent Customer / Project / Ticket values from spilling out */
+.timesheet-table td.customer-col,
+.timesheet-table td.project-col,
+.timesheet-table td.ticket-col {
+    max-width: 190px;
 }
 .hour-input {
     width: 52px; height: 36px; text-align: center; font-size: 13px;
@@ -526,11 +539,5 @@ function submitForm() {
     });
 }
 
-function showToast(type, message) {
-    if (typeof iziToast !== 'undefined') {
-        const method = iziToast[type] ? type : 'info';
-        iziToast[method]({ title: message, message: '', position: 'topRight' });
-    } else { alert(message); }
-}
 </script>
 @endpush

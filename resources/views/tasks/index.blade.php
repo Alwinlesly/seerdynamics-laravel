@@ -159,6 +159,7 @@
 <script>
     const canEditTaskAction = @json(!auth()->user()->inGroup(3));
     const canDeleteTaskAction = @json(!auth()->user()->inGroup(2) && !auth()->user()->inGroup(3));
+    const canCloseTaskAction = @json(auth()->user()->inGroup(3));
     let currentPage = 1;
     let totalRecords = 0;
     const limit = 20;
@@ -268,6 +269,7 @@
         } else {
             tasks.forEach(task => {
                 const statusClass = task.status.toLowerCase().replace(/\s+/g, '-');
+                const canShowClose = canCloseTaskAction && String(task.status || '').toLowerCase() === 'completed';
                 const priorityClass = task.priority_class;
                 const actionHtml = `
                     ${canEditTaskAction ? `
@@ -286,6 +288,14 @@
                                 <line x1="10" y1="11" x2="10" y2="17"/>
                                 <line x1="14" y1="11" x2="14" y2="17"/>
                                 <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                            </svg>
+                        </span>
+                    ` : ''}
+                    ${canShowClose ? `
+                        <span class="close-task" data-id="${task.id}" style="cursor: pointer;" title="Close ticket">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M8 8l8 8M16 8l-8 8"></path>
                             </svg>
                         </span>
                     ` : ''}
@@ -697,6 +707,29 @@
         const taskId = $(this).data('id');
         $('#deleteTaskId').val(taskId);
         $('#deleteTaskModal').modal('show');
+    });
+
+    // Close task (customer admin flow)
+    $(document).on('click', '.close-task', function() {
+        if (!canCloseTaskAction) return;
+        const taskId = $(this).data('id');
+
+        $.ajax({
+            url: `/tasks/${taskId}/close`,
+            method: 'POST',
+            data: { _token: '{{ csrf_token() }}' },
+            success: function(response) {
+                if (!response.error) {
+                    showToast('success', response.message || 'Ticket closed successfully');
+                    loadTasks();
+                } else {
+                    showToast('error', response.message || 'Unable to close ticket');
+                }
+            },
+            error: function(xhr) {
+                showToast('error', (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Unable to close ticket');
+            }
+        });
     });
 
     function populateEditForm(task) {

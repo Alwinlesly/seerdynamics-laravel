@@ -89,6 +89,19 @@
     background-color: #fff;
     border: 1px solid #dee2e6;
     color: #2B2B2B;
+    width: 100%;
+    max-width: 100%;
+    padding-right: 2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Prevent row select values from overflowing table cells */
+.timesheet-table td.customer-col,
+.timesheet-table td.project-col,
+.timesheet-table td.ticket-col {
+    max-width: 190px;
 }
 
 /* Hour input inside date cells */
@@ -664,14 +677,6 @@ function submitTimesheetForm() {
     });
 }
 
-function showToast(type, message) {
-    if (typeof iziToast !== 'undefined') {
-        iziToast[type] ? iziToast[type]({ title: message, message: '', position: 'topRight' })
-                       : iziToast.info({ title: message, message: '', position: 'topRight' });
-    } else {
-        alert(message);
-    }
-}
 
 // ─────────────────────────────────────────────
 // Sidebar toggle (matches other pages)
