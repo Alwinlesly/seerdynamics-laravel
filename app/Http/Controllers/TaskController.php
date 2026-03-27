@@ -58,6 +58,23 @@ class TaskController extends Controller
         } else { // Admin
             $data['projects'] = Project::all();
         }
+
+        // For create-ticket project dropdown: exclude Closed/Finished projects.
+        $inactiveProjectStatusIds = DB::table('project_status')
+            ->select('id', 'title')
+            ->get()
+            ->filter(function ($row) {
+                $title = strtolower(trim((string) $row->title));
+                return in_array($title, ['finished', 'closed'], true);
+            })
+            ->pluck('id')
+            ->all();
+
+        $data['create_projects'] = collect($data['projects'] ?? [])
+            ->filter(function ($project) use ($inactiveProjectStatusIds) {
+                return !in_array((int) $project->status, array_map('intval', $inactiveProjectStatusIds), true);
+            })
+            ->values();
         
         // Get customers for filter
         if ($user->inGroup(1) || $user->inGroup(2)) {

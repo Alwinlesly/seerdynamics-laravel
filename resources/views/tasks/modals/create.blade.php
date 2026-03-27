@@ -27,7 +27,7 @@
                             <label for="project_id" class="form-label">Project <span class="req">*</span></label>
                             <select class="form-select" id="project_id" name="project_id" required>
                                 <option value="">Select project</option>
-                                @foreach($projects as $project)
+                                @foreach(($create_projects ?? $projects) as $project)
                                     <option value="{{ $project->id }}">{{ $project->project_id }} - {{ $project->title }}</option>
                                 @endforeach
                             </select>
@@ -177,8 +177,17 @@
     background-color: #e52165;
     color: #fff;
 }
+
+/* Keep Select2 dropdown aligned with fields inside scrolling modal body */
+#createTaskModal .modal-body {
+    position: relative;
+}
 </style>
 <script>
+    function createTaskSelect2Parent() {
+        return $('#createTaskModal .modal-body');
+    }
+
     let createServiceMasterOptions = [];
 
     function cacheCreateServiceOptions() {
@@ -192,7 +201,7 @@
     }
 
     function initCreateTaskSearchSelects() {
-        const $modal = $('#createTaskModal');
+        const $dropdownParent = createTaskSelect2Parent();
         const singleSelector = '#project_id, #issue_type_id, #service, #priority_id, #status';
 
         $(singleSelector).each(function() {
@@ -203,7 +212,7 @@
             const isServiceSelect = $select.attr('id') === 'service';
             $select.select2({
                 width: '100%',
-                dropdownParent: $modal,
+                dropdownParent: $dropdownParent,
                 minimumResultsForSearch: isServiceSelect ? Infinity : 0
             });
         });
@@ -281,9 +290,6 @@
             }
             initCreateTaskSearchSelects();
             filterCreateServicesByProject();
-        });
-        $('#createTaskModal .modal-body').on('scroll', function() {
-            $('#createTaskModal select.select2-hidden-accessible').select2('close');
         });
 
         filterCreateServicesByProject();

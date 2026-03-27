@@ -168,8 +168,17 @@
     background-color: #e52165;
     color: #fff;
 }
+
+/* Keep Select2 dropdown aligned with fields inside scrolling modal body */
+#editTaskModal .modal-body {
+    position: relative;
+}
 </style>
 <script>
+    function editTaskSelect2Parent() {
+        return $('#editTaskModal .modal-body');
+    }
+
     let editServiceMasterOptions = [];
 
     function cacheEditServiceOptions() {
@@ -183,7 +192,7 @@
     }
 
     function initEditTaskSearchSelects() {
-        const $modal = $('#editTaskModal');
+        const $dropdownParent = editTaskSelect2Parent();
         const singleSelector = '#edit_issue_type_id, #edit_service, #edit_priority_id, #edit_status';
 
         $(singleSelector).each(function() {
@@ -194,7 +203,7 @@
             const isServiceSelect = $select.attr('id') === 'edit_service';
             $select.select2({
                 width: '100%',
-                dropdownParent: $modal,
+                dropdownParent: $dropdownParent,
                 minimumResultsForSearch: isServiceSelect ? Infinity : 0
             });
         });
@@ -253,9 +262,6 @@
             }
             initEditTaskSearchSelects();
             filterEditServicesByProject();
-        });
-        $('#editTaskModal .modal-body').on('scroll', function() {
-            $('#editTaskModal select.select2-hidden-accessible').select2('close');
         });
         filterEditServicesByProject();
     });
