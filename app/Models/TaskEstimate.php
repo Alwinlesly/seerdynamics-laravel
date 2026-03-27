@@ -23,6 +23,7 @@ class TaskEstimate extends Model
     protected $fillable = [
         'task_id',
         'user_id',
+        'estimate_amount',
         'estimate_func',
         'estimate_tech',
         'estimate_days',
@@ -40,6 +41,11 @@ class TaskEstimate extends Model
         'created' => 'datetime',
         'estimate_approvedon' => 'datetime',
         'estimate_status' => 'integer',
+        'estimate_amount' => 'float',
+        'estimate_func' => 'float',
+        'estimate_tech' => 'float',
+        'estimate_days' => 'float',
+        'estimate_hours' => 'float',
     ];
 
     /**

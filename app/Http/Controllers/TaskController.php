@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class TaskController extends Controller
 {
@@ -228,7 +229,12 @@ class TaskController extends Controller
                     'title' => $task->title ?? '',
                     'project' => $projectName,
                     'customer' => $customerName,
-                    'estimate' => $task->estimate ?? 0,
+                    'estimate' => (function () use ($task) {
+                        $latestEstimateHours = TaskEstimate::where('task_id', $task->id)
+                            ->orderByDesc('id')
+                            ->value('estimate_hours');
+                        return $latestEstimateHours !== null ? $latestEstimateHours : ($task->estimate ?? 0);
+                    })(),
                     'priority' => $priorityName,
                     'priority_class' => strtolower(str_replace(' ', '-', $priorityName)),
                     'created_by' => $creatorName,
@@ -315,6 +321,12 @@ class TaskController extends Controller
             })->values();
 
             $canSeeTime = !$user->inGroup(3);
+            $currentEstimateHours = TaskEstimate::where('task_id', $task->id)
+                ->orderByDesc('id')
+                ->value('estimate_hours');
+            if ($currentEstimateHours === null) {
+                $currentEstimateHours = $task->estimate ?? 0;
+            }
 
             // Fetch weekly timesheet entries booked against this task
             $weeklyTimesheetEntries = collect();
@@ -348,6 +360,7 @@ class TaskController extends Controller
                     'weeklyTimesheetEntries' => $weeklyTimesheetEntries,
                     'taskCustomerUsers' => $taskCustomerUsers,
                     'taskConsultantUsers' => $taskConsultantUsers,
+                    'currentEstimateHours' => $currentEstimateHours,
                 ])->render();
                 return response()->json([
                     'error' => false,
@@ -362,6 +375,7 @@ class TaskController extends Controller
                 'page_title' => 'Task Details - ' . company_name(),
                 'current_user' => $user,
                 'task' => $task,
+                'currentEstimateHours' => $currentEstimateHours,
             ];
 
             return view('tasks.show', $data);
@@ -1043,6 +1057,7 @@ class TaskController extends Controller
             TaskEstimate::create([
                 'task_id' => $task->id,
                 'user_id' => $user->id,
+                'estimate_amount' => $hours,
                 'estimate_func' => $func,
                 'estimate_tech' => $tech,
                 'estimate_days' => $days,
@@ -1050,6 +1065,12 @@ class TaskController extends Controller
                 'estimate_status' => 0,
                 'created' => now(),
             ]);
+
+            // Keep tasks.estimate in sync when legacy column exists.
+            if (\Schema::hasColumn('tasks', 'estimate')) {
+                $task->estimate = $hours;
+                $task->save();
+            }
 
             try {
                 EmailService::sendTicketEmail($task->id, 'ESTIMATE', [
@@ -1066,11 +1087,18 @@ class TaskController extends Controller
                 'error' => false,
                 'message' => 'Estimate created successfully.',
             ]);
+        } catch (ValidationException $e) {
+            $message = collect($e->errors())->flatten()->first() ?: 'Validation failed';
+            return response()->json([
+                'error' => true,
+                'message' => $message,
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             \Log::error('Error creating estimate: ' . $e->getMessage());
             return response()->json([
                 'error' => true,
-                'message' => 'Error creating estimate',
+                'message' => 'Error creating estimate: ' . $e->getMessage(),
             ], 500);
         }
     }

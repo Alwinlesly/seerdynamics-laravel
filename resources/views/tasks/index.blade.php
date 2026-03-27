@@ -440,6 +440,7 @@
                     $('#estimateDaysText').text('0.0');
                     $('#estimateHoursText').text('0.00');
                     loadEstimates(taskId, true);
+                    loadTasks();
                 } else {
                     showToast('error', response.message || 'Failed to create estimate');
                 }
@@ -504,12 +505,17 @@
         }
 
         let html = '';
+        let topEstimate = '0';
         if (!estimates || estimates.length === 0) {
             html = '<div class="text-muted">No estimates available</div>';
             $('#estimateSaveBtn').text('Add');
             $('#estimateList').html(html);
+            $('#taskEstimateTop').text(topEstimate);
             return;
         }
+
+        topEstimate = (estimates[0] && estimates[0].estimate_hours != null) ? estimates[0].estimate_hours : '0';
+        $('#taskEstimateTop').text(topEstimate);
 
         estimates.forEach(function(val) {
             let approveHtml = '';

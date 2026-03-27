@@ -42,7 +42,7 @@
             <div class="td-item">
                 <div>
                     <span class="left-col">Estimate</span> 
-                    <span class="right-col">{{ $task->estimate ?? 0 }}</span>
+                    <span class="right-col" id="taskEstimateTop">{{ $currentEstimateHours ?? ($task->estimate ?? 0) }}</span>
                 </div>
             </div>
             <div class="td-item">
