@@ -27,23 +27,6 @@ class TaskController extends Controller
     public function index()
     {
         $user = auth()->user();
-
-        // Mirror CI behavior: dropdowns should primarily expose active/usable records.
-        $activeProjectStatusIds = DB::table('project_status')
-            ->select('id', 'title')
-            ->get()
-            ->filter(function ($row) {
-                $title = strtolower(trim((string) $row->title));
-                // Treat Finished/Closed as inactive projects for selection dropdowns.
-                return !in_array($title, ['finished', 'closed'], true);
-            })
-            ->pluck('id')
-            ->values();
-
-        $baseProjectQuery = Project::query();
-        if ($activeProjectStatusIds->isNotEmpty()) {
-            $baseProjectQuery->whereIn('status', $activeProjectStatusIds);
-        }
         
         $data = [
             'page_title' => 'Tasks - ' . company_name(),
@@ -60,32 +43,20 @@ class TaskController extends Controller
         $data['issue_types'] = IssueType::all();
         
         // Get projects for filter (based on user role)
-        if ($user->inGroup(3)) { // Customer admin - show projects for this user and parent company
+        if ($user->inGroup(3) || $user->inGroup(4)) { // Customer admin/user - match CI get_projects() logic
             $clientIds = $user->getCustomerClientIds();
-            $data['projects'] = (clone $baseProjectQuery)
+            $data['projects'] = Project::query()
                 ->whereIn('client_id', $clientIds)
                 ->where('is_visible', 0)
                 ->get();
-        } elseif ($user->inGroup(4)) { // Customer user - show projects they have assigned tasks in
-            $data['projects'] = (clone $baseProjectQuery)
-                ->whereHas('tasks.users', function($q) use ($user) {
-                    $q->where('user_id', $user->id);
-                })
-                ->get();
-        } elseif ($user->inGroup(2)) { // Consultant - show projects where they have assigned tasks
-            $data['projects'] = (clone $baseProjectQuery)
-                ->whereHas('tasks.users', function($q) use ($user) {
-                    $q->where('user_id', $user->id);
-                })
-                ->get();
-        } elseif (!$user->inGroup(1)) { // Other non-admin
-            $data['projects'] = (clone $baseProjectQuery)
+        } elseif (!$user->inGroup(1)) { // Non-admin/non-customer => assigned project_users only (CI behavior)
+            $data['projects'] = Project::query()
                 ->whereHas('users', function($q) use ($user) {
                     $q->where('user_id', $user->id);
                 })
                 ->get();
         } else { // Admin
-            $data['projects'] = (clone $baseProjectQuery)->get();
+            $data['projects'] = Project::all();
         }
         
         // Get customers for filter
@@ -112,13 +83,11 @@ class TaskController extends Controller
             ->whereNotNull('service')
             ->where('service', '!=', '');
 
-        if ($activeProjectStatusIds->isNotEmpty()) {
-            $servicesQuery->join('projects', 'projects.id', '=', 'services.project')
-                ->whereIn('projects.status', $activeProjectStatusIds);
-        }
-
         if ($projectIds->isNotEmpty()) {
             $servicesQuery->whereIn('project', $projectIds);
+        } else {
+            // If no projects are visible for this user, keep service list empty.
+            $servicesQuery->whereRaw('1 = 0');
         }
 
         $data['services'] = $servicesQuery
