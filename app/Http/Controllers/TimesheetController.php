@@ -180,6 +180,7 @@ class TimesheetController extends Controller
                 // Use pre-calculated values from subqueries (no additional DB queries!)
                 $billableHours    = $timesheet->billable_hours ?? 0;
                 $nonBillableHours = $timesheet->non_billable_hours ?? 0;
+                $isAdmin          = $user->inGroup(1);
                 
                 // Status determination (exact CodeIgniter logic)
                 $status      = 'Draft';
@@ -206,6 +207,29 @@ class TimesheetController extends Controller
                         $statusClass = 'sub-sts';
                     }
                 }
+
+                // Action permissions (match existing CI logic)
+                // Always: view
+                // Draft: edit + delete (admin and consultant-owner)
+                // Submit:
+                //   - Returned: edit + delete
+                //   - No approvals yet: admin can edit + delete
+                $canEdit = false;
+                $canDelete = false;
+                if ($timesheet->submit_or_draft === 'draft') {
+                    $canEdit = true;
+                    $canDelete = true;
+                } elseif ($timesheet->submit_or_draft === 'submit') {
+                    $approvedDetails = (int) ($timesheet->approved_details ?? 0);
+                    $rejectedDetails = (int) ($timesheet->rejected_details ?? 0);
+                    if ($rejectedDetails > 0) {
+                        $canEdit = true;
+                        $canDelete = true;
+                    } elseif ($approvedDetails === 0 && $isAdmin) {
+                        $canEdit = true;
+                        $canDelete = true;
+                    }
+                }
                 
                 $rows[] = [
                     'id'             => $timesheet->id,
@@ -217,6 +241,8 @@ class TimesheetController extends Controller
                     'status'         => $status,
                     'status_class'   => $statusClass,
                     'submit_or_draft'=> $timesheet->submit_or_draft,
+                    'can_edit'       => $canEdit,
+                    'can_delete'     => $canDelete,
                 ];
             }
             
@@ -427,8 +453,12 @@ class TimesheetController extends Controller
         $timesheet = DB::table('weekly_timesheet')->where('id', $id)->where('status', 1)->first();
         if (!$timesheet) abort(404);
 
-        // Only admins or the owner can edit; only drafts can be edited
+        // Only admins or the owner can edit
         if (!$user->inGroup(1) && $timesheet->user_id != $user->id) {
+            abort(403, 'Access Denied');
+        }
+
+        if (!$this->canEditOrDeleteTimesheet($timesheet, $user)) {
             abort(403, 'Access Denied');
         }
 
@@ -489,6 +519,10 @@ class TimesheetController extends Controller
             }
 
             if (!$user->inGroup(1) && $timesheet->user_id != $user->id) {
+                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+            }
+
+            if (!$this->canEditOrDeleteTimesheet($timesheet, $user)) {
                 return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
             }
 
@@ -576,10 +610,9 @@ class TimesheetController extends Controller
             if (!$user->inGroup(1) && $timesheet->user_id != $user->id) {
                 return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
             }
-            
-            // Only allow deleting draft timesheets (matching old project logic)
-            if ($timesheet->submit_or_draft !== 'draft') {
-                return response()->json(['error' => true, 'message' => 'Only draft timesheets can be deleted'], 403);
+
+            if (!$this->canEditOrDeleteTimesheet($timesheet, $user)) {
+                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
             }
             
             // Soft delete by setting status to 0
@@ -697,5 +730,47 @@ class TimesheetController extends Controller
         }
         // Assume Y-m-d or strtotime compatible
         return date('Y-m-d', strtotime($dateStr));
+    }
+
+    /**
+     * Edit/Delete permission parity with legacy CI logic for weekly timesheet.
+     */
+    private function canEditOrDeleteTimesheet($timesheet, $user): bool
+    {
+        if (!$timesheet || (int) ($timesheet->status ?? 0) !== 1) {
+            return false;
+        }
+
+        // Non-admin can only manage own rows
+        if (!$user->inGroup(1) && (int) $timesheet->user_id !== (int) $user->id) {
+            return false;
+        }
+
+        if ($timesheet->submit_or_draft === 'draft') {
+            return true;
+        }
+
+        if ($timesheet->submit_or_draft !== 'submit') {
+            return false;
+        }
+
+        $baseQuery = DB::table('weekly_timesheet_project_task_details')
+            ->where('timesheet_id', $timesheet->id)
+            ->where('status', 1);
+
+        $approvedCount = (clone $baseQuery)->where('approved_status', 1)->count();
+        $rejectedCount = (clone $baseQuery)->where('approved_status', 2)->count();
+
+        // Returned -> editable/deletable
+        if ($rejectedCount > 0) {
+            return true;
+        }
+
+        // Submitted with no approvals yet -> admin only
+        if ($approvedCount === 0 && $user->inGroup(1)) {
+            return true;
+        }
+
+        return false;
     }
 }

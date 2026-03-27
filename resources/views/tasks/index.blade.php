@@ -157,9 +157,10 @@
 
 @push('scripts')
 <script>
-    const canEditTaskAction = @json(!auth()->user()->inGroup(3) && !auth()->user()->inGroup(4));
-    const canDeleteTaskAction = @json(!auth()->user()->inGroup(2) && !auth()->user()->inGroup(3) && !auth()->user()->inGroup(4));
+    const canEditTaskAction = @json(auth()->user()->inGroup(1) || permissions('task_edit'));
+    const canDeleteTaskAction = @json(auth()->user()->inGroup(1) || permissions('task_delete'));
     const canCloseTaskAction = @json(auth()->user()->inGroup(3) || auth()->user()->inGroup(4));
+    const isConsultantUser = @json(auth()->user()->inGroup(2));
     let currentPage = 1;
     let totalRecords = 0;
     const limit = 20;
@@ -741,6 +742,11 @@
             method: 'GET',
             success: function(response) {
                 if (!response.error) {
+                    const statusText = String(response.task?.status_title || response.task?.status || '').trim().toLowerCase();
+                    if (isConsultantUser && (statusText === 'closed' || statusText === 'completed')) {
+                        showToast('error', 'This Ticket has been Closed/Completed');
+                        return;
+                    }
                     setEditTaskModalMode('edit');
                     populateEditForm(response.task);
                     $('#editTaskModal').modal('show');
