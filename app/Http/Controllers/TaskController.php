@@ -308,7 +308,7 @@ class TaskController extends Controller
             // Try to load comments if table exists
             if (\Schema::hasTable('task_comments')) {
                 try {
-                    $task->load('comments.user');
+                    $task->load('comments.user', 'comments.files');
                 } catch (\Exception $e) {
                     \Log::warning('Could not load comments: ' . $e->getMessage());
                 }
@@ -1357,7 +1357,8 @@ class TaskController extends Controller
             // Validate
             $request->validate([
                 'message' => 'required|string',
-                'attachment' => 'nullable|file|max:10240' // 10MB max
+                'attachment' => 'nullable|array',
+                'attachment.*' => 'file|max:10240' // 10MB each
             ]);
             
             // Check if task_comments table exists, create if not
@@ -1373,13 +1374,39 @@ class TaskController extends Controller
             }
             
             $attachmentPath = null;
+            $uploadedFiles = [];
             
             // Handle file upload
             if ($request->hasFile('attachment')) {
-                $file = $request->file('attachment');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $attachmentPath = $file->storeAs('task_attachments', $filename, 'public');
-                $attachmentPath = 'storage/' . $attachmentPath;
+                $files = $request->file('attachment');
+                if (!is_array($files)) {
+                    $files = [$files];
+                }
+
+                $uploadedFiles = [];
+                foreach ($files as $file) {
+                    if (!$file) {
+                        continue;
+                    }
+                    $fileSize = $file->getSize();
+                    $destinationPath = public_path('assets/uploads/task_comments');
+                    if (!is_dir($destinationPath)) {
+                        mkdir($destinationPath, 0755, true);
+                    }
+                    $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+                    $file->move($destinationPath, $filename);
+                    $uploadedFiles[] = [
+                        'name' => $filename,
+                        'size' => $fileSize,
+                        'type' => strtolower($file->getClientOriginalExtension() ?: 'file'),
+                        'path' => 'assets/uploads/task_comments/' . $filename,
+                    ];
+                }
+
+                if (!empty($uploadedFiles)) {
+                    // Keep legacy comment attachment column with first file
+                    $attachmentPath = $uploadedFiles[0]['path'];
+                }
             }
             
             // Create comment
@@ -1391,6 +1418,21 @@ class TaskController extends Controller
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
+
+            // Save all comment files in media_files
+            if (!empty($uploadedFiles)) {
+                foreach ($uploadedFiles as $uploadedFile) {
+                    MediaFile::create([
+                        'type' => 'task_comment',
+                        'type_id' => $commentId,
+                        'user_id' => $user->id,
+                        'file_name' => $uploadedFile['name'],
+                        'file_type' => $uploadedFile['type'],
+                        'file_size' => $uploadedFile['size'],
+                        'created' => now(),
+                    ]);
+                }
+            }
             
             // Send email notification for new message (replicating CI's NMSG action)
             try {

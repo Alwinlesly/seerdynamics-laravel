@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TaskComment extends Model
 {
@@ -36,5 +37,13 @@ class TaskComment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Get uploaded files for this comment.
+     */
+    public function files(): HasMany
+    {
+        return $this->hasMany(MediaFile::class, 'type_id')->where('type', 'task_comment');
     }
 }

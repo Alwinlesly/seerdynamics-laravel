@@ -191,11 +191,25 @@
                                     <small class="text-muted">{{ $comment->created_at ? $comment->created_at->diffForHumans() : '' }}</small>
                                 </div>
                                 <p class="mb-0 mt-1">{{ $comment->message }}</p>
-                                @if($comment->attachment)
-                                <div class="mt-1">
-                                    <a href="{{ asset($comment->attachment) }}" target="_blank" class="text-primary">
-                                        <i class="bi bi-paperclip"></i> {{ basename($comment->attachment) }}
+                                @php
+                                    $commentAttachmentMap = [];
+                                    foreach (($comment->files ?? collect()) as $file) {
+                                        $commentAttachmentMap[$file->file_name] = 'assets/uploads/task_comments/' . $file->file_name;
+                                    }
+                                    if (!empty($comment->attachment)) {
+                                        $legacyCommentName = basename($comment->attachment);
+                                        if (!isset($commentAttachmentMap[$legacyCommentName])) {
+                                            $commentAttachmentMap[$legacyCommentName] = $comment->attachment;
+                                        }
+                                    }
+                                @endphp
+                                @if(count($commentAttachmentMap) > 0)
+                                <div class="mt-1 d-flex flex-column">
+                                    @foreach($commentAttachmentMap as $fileName => $filePath)
+                                    <a href="{{ asset($filePath) }}" target="_blank" class="text-primary">
+                                        <i class="bi bi-paperclip"></i> {{ $fileName }}
                                     </a>
+                                    @endforeach
                                 </div>
                                 @endif
                             </div>
@@ -216,12 +230,15 @@
                     <textarea class="form-control" name="message" rows="4" placeholder="Type your message..." required style="border: 1px solid #dee2e6; resize: none;"></textarea>
                 </div>
                 <div class="d-flex justify-content-between align-items-center px-3 py-3" style="gap: 10px;">
-                    <div class="flex-grow-1 position-relative">
+                    <div class="flex-grow-1">
+                        <div class="comment-upload-row position-relative">
                         <input type="text" class="form-control" id="fileNameDisplay" placeholder="No file chosen" readonly style="padding-right: 50px;">
-                        <input type="file" name="attachment" id="commentFileInput" class="d-none">
-                        <label for="commentFileInput" class="position-absolute" style="right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; background: #7d6bb2; color: white; padding: 8px 12px; border-radius: 4px;">
+                        <input type="file" name="attachment[]" id="commentFileInput" class="d-none" multiple>
+                        <label for="commentFileInput" class="upload-trigger position-absolute" style="right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; background: #7d6bb2; color: white; padding: 8px 12px; border-radius: 4px;">
                             <i class="bi bi-upload"></i>
                         </label>
+                        </div>
+                        <div id="commentAttachmentPreview" class="mt-2 d-flex flex-wrap gap-2"></div>
                     </div>
                     <button type="submit" class="btn" style="background: #7d6bb2; color: white; padding: 8px 24px; border-radius: 25px; white-space: nowrap;">Send</button>
                 </div>

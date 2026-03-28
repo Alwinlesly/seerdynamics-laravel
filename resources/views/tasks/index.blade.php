@@ -176,6 +176,43 @@
     word-break: break-word;
     white-space: normal;
 }
+
+#commentAttachmentPreview .file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: #f0edfa;
+    color: #513998;
+    font-size: 12px;
+    max-width: 100%;
+}
+
+#commentAttachmentPreview .file-chip .name {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#commentAttachmentPreview .file-chip button {
+    border: 0;
+    background: transparent;
+    color: #513998;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+#addCommentForm .comment-upload-row {
+    position: relative;
+}
+
+#addCommentForm .comment-upload-row .upload-trigger {
+    z-index: 2;
+}
 </style>
 @endpush
 
@@ -188,6 +225,52 @@
     let currentPage = 1;
     let totalRecords = 0;
     const limit = 20;
+    let selectedCommentAttachments = [];
+
+    function commentAttachmentKey(file) {
+        return [file.name, file.size, file.lastModified].join('__');
+    }
+
+    function syncCommentAttachmentInput() {
+        const input = document.getElementById('commentFileInput');
+        if (!input) return;
+        const dataTransfer = new DataTransfer();
+        selectedCommentAttachments.forEach(function(file) {
+            dataTransfer.items.add(file);
+        });
+        input.files = dataTransfer.files;
+    }
+
+    function renderCommentAttachmentPreview() {
+        const $preview = $('#commentAttachmentPreview');
+        const $display = $('#fileNameDisplay');
+        if (!$preview.length || !$display.length) return;
+
+        $preview.empty();
+
+        if (!selectedCommentAttachments.length) {
+            $display.val('');
+            return;
+        }
+
+        if (selectedCommentAttachments.length === 1) {
+            $display.val(selectedCommentAttachments[0].name);
+        } else {
+            $display.val(selectedCommentAttachments.length + ' files selected');
+        }
+
+        selectedCommentAttachments.forEach(function(file, index) {
+            const $chip = $('<span>', { class: 'file-chip', title: file.name });
+            $chip.append($('<span>', { class: 'name', text: file.name }));
+            $chip.append($('<button>', {
+                type: 'button',
+                class: 'remove-comment-attachment',
+                'data-index': index,
+                html: '&times;'
+            }));
+            $preview.append($chip);
+        });
+    }
 
     $(document).ready(function() {
         // Check if project filter is passed in URL
@@ -386,6 +469,9 @@
             success: function(response) {
                 if (!response.error) {
                     $('#taskDetailContent').html(response.html);
+                    selectedCommentAttachments = [];
+                    syncCommentAttachmentInput();
+                    renderCommentAttachmentPreview();
                     // Mirror CI flow: customer admin cannot see timer controls in ticket details.
                     if (response.can_see_time) {
                         $('#timerBtn').removeClass('d-none');
@@ -409,10 +495,31 @@
         });
     });
 
-    // Handle file input display in modal
+    // Handle message attachment selection (cumulative)
     $(document).on('change', '#commentFileInput', function() {
-        const fileName = this.files[0] ? this.files[0].name : 'No file chosen';
-        $('#fileNameDisplay').val(fileName);
+        const incoming = Array.from(this.files || []);
+        if (!incoming.length) return;
+
+        const existingKeys = new Set(selectedCommentAttachments.map(commentAttachmentKey));
+        incoming.forEach(function(file) {
+            const key = commentAttachmentKey(file);
+            if (!existingKeys.has(key)) {
+                selectedCommentAttachments.push(file);
+                existingKeys.add(key);
+            }
+        });
+
+        syncCommentAttachmentInput();
+        renderCommentAttachmentPreview();
+    });
+
+    $(document).on('click', '.remove-comment-attachment', function() {
+        const index = Number($(this).data('index'));
+        if (Number.isInteger(index) && index >= 0 && index < selectedCommentAttachments.length) {
+            selectedCommentAttachments.splice(index, 1);
+            syncCommentAttachmentInput();
+            renderCommentAttachmentPreview();
+        }
     });
 
     // Handle comment submission
@@ -429,6 +536,7 @@
             contentType: false,
             success: function(response) {
                 if (!response.error) {
+                    selectedCommentAttachments = [];
                     // Reload task detail to show new comment
                     $('.view-task[data-id="' + taskId + '"]').click();
                     showToast('success', 'Comment added successfully');
