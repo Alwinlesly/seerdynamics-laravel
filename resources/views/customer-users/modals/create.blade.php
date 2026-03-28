@@ -18,7 +18,7 @@
             <div class="row mb-3">
                 <div class="col-md-12">
                     <div>
-                        <label for="cuserCustomer" class="form-label">Project Client <span class="req">*</span></label>
+                        <label for="cuserCustomer" class="form-label">Project Customer <span class="req">*</span></label>
                         <select class="form-select" id="cuserCustomer" name="cuser_customer" required>
                             <option value="" disabled selected hidden>Select customer</option>
                             @foreach($customers as $customer)
@@ -35,7 +35,7 @@
                     <div>
                         <label for="role" class="form-label">Role <span class="req">*</span></label>
                         <select class="form-select" id="role" name="groups" required>
-                            <option value="3">Customer</option>
+                            <option value="3">Customer Admin</option>
                             <option value="4" selected>Customer User</option>
                         </select>
                     </div>
