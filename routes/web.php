@@ -8,6 +8,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TimesheetApprovalController;
+use App\Http\Controllers\UserProfileController;
 
 // Authentication Routes
 Route::get('/', [LoginController::class, 'index'])->name('login');
@@ -22,6 +23,8 @@ Route::post('/auth/reset-password', [ResetPasswordController::class, 'reset']);
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
+    Route::get('/users/profile', [UserProfileController::class, 'show'])->name('users.profile');
+    Route::post('/users/profile', [UserProfileController::class, 'update'])->name('users.profile.update');
     
     // Projects Routes
     Route::prefix('projects')->group(function () {
