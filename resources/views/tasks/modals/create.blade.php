@@ -95,13 +95,14 @@
                             <label for="attachment" class="form-label">Attachment/Screenshot</label>
                             <div class="chat-input py-0">
                                 <div class="left-ci d-flex align-items-center gap-0">
-                                    <input type="text" class="form-control" id="attachmentName" placeholder="File" readonly>
-                                    <input type="file" id="attachment" name="attachment" class="d-none" accept="image/*,.pdf,.doc,.docx">
+                                    <input type="text" class="form-control" id="attachmentName" placeholder="Files" readonly>
+                                    <input type="file" id="attachment" name="attachment[]" class="d-none" accept="image/*,.pdf,.doc,.docx" multiple>
                                     <label for="attachment" class="upload-btn mb-0" style="cursor: pointer;">
                                         <i class="bi bi-upload"></i>
                                     </label>
                                 </div>
                             </div>
+                            <div id="attachmentPreview" class="mt-2 d-flex flex-wrap gap-2"></div>
                         </div>
                     </div>
 
@@ -191,6 +192,35 @@
 #createTaskModal .modal-body {
     position: relative;
 }
+
+#attachmentPreview .file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: #f0edfa;
+    color: #513998;
+    font-size: 12px;
+    max-width: 100%;
+}
+
+#attachmentPreview .file-chip .name {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#attachmentPreview .file-chip button {
+    border: 0;
+    background: transparent;
+    color: #513998;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
 </style>
 <script>
     function createTaskSelect2Parent() {
@@ -198,6 +228,48 @@
     }
 
     let createServiceMasterOptions = [];
+    let selectedCreateAttachments = [];
+
+    function createAttachmentKey(file) {
+        return [file.name, file.size, file.lastModified].join('__');
+    }
+
+    function syncCreateAttachmentInput() {
+        const input = document.getElementById('attachment');
+        const dataTransfer = new DataTransfer();
+        selectedCreateAttachments.forEach(function(file) {
+            dataTransfer.items.add(file);
+        });
+        input.files = dataTransfer.files;
+    }
+
+    function renderCreateAttachmentPreview() {
+        const $preview = $('#attachmentPreview');
+        $preview.empty();
+
+        if (!selectedCreateAttachments.length) {
+            $('#attachmentName').val('');
+            return;
+        }
+
+        if (selectedCreateAttachments.length === 1) {
+            $('#attachmentName').val(selectedCreateAttachments[0].name);
+        } else {
+            $('#attachmentName').val(selectedCreateAttachments.length + ' files selected');
+        }
+
+        selectedCreateAttachments.forEach(function(file, index) {
+            const $chip = $('<span>', { class: 'file-chip', title: file.name });
+            $chip.append($('<span>', { class: 'name', text: file.name }));
+            $chip.append($('<button>', {
+                type: 'button',
+                class: 'remove-create-attachment',
+                'data-index': index,
+                html: '&times;'
+            }));
+            $preview.append($chip);
+        });
+    }
 
     function cacheCreateServiceOptions() {
         createServiceMasterOptions = $('#service option').not(':first').map(function() {
@@ -309,10 +381,31 @@
         setCreateTaskDefaults();
     });
 
-    // Show file name when file is selected
+    // Keep adding files across multiple picks (no need to hold Ctrl)
     $(document).on('change', '#attachment', function() {
-        const fileName = this.files[0] ? this.files[0].name : '';
-        $('#attachmentName').val(fileName);
+        const incoming = Array.from(this.files || []);
+        if (!incoming.length) return;
+
+        const existingKeys = new Set(selectedCreateAttachments.map(createAttachmentKey));
+        incoming.forEach(function(file) {
+            const key = createAttachmentKey(file);
+            if (!existingKeys.has(key)) {
+                selectedCreateAttachments.push(file);
+                existingKeys.add(key);
+            }
+        });
+
+        syncCreateAttachmentInput();
+        renderCreateAttachmentPreview();
+    });
+
+    $(document).on('click', '.remove-create-attachment', function() {
+        const index = Number($(this).data('index'));
+        if (Number.isInteger(index) && index >= 0 && index < selectedCreateAttachments.length) {
+            selectedCreateAttachments.splice(index, 1);
+            syncCreateAttachmentInput();
+            renderCreateAttachmentPreview();
+        }
     });
 
     // Submit create form
@@ -334,7 +427,9 @@
                     setCreateTaskDefaults();
                     // Reset select2 fields if any
                     $('#createTaskForm .select2').val(null).trigger('change');
-                    $('#attachmentName').val('');
+                    selectedCreateAttachments = [];
+                    syncCreateAttachmentInput();
+                    renderCreateAttachmentPreview();
                     loadTasks();
                     showToast('success', 'Task created successfully!');
                 } else {
@@ -353,6 +448,12 @@
                 showToast('error', errorMessage);
             }
         });
+    });
+
+    $('#createTaskModal').on('hidden.bs.modal', function() {
+        selectedCreateAttachments = [];
+        syncCreateAttachmentInput();
+        renderCreateAttachmentPreview();
     });
 </script>
 @endpush

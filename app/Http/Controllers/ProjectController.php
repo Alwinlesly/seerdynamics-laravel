@@ -560,6 +560,8 @@ class ProjectController extends Controller
         
         $project = Project::findOrFail($id);
         $file = $request->file('file');
+        $fileSize = $file->getSize();
+        $fileType = strtolower($file->getClientOriginalExtension() ?: 'file');
         
         $filename = time() . '_' . $file->getClientOriginalName();
         
@@ -572,7 +574,8 @@ class ProjectController extends Controller
             'type_id' => $project->id,
             'user_id' => auth()->id(),
             'file_name' => $filename,
-            'file_size' => $file->getSize(),
+            'file_type' => $fileType,
+            'file_size' => $fileSize,
             'created' => now(),
         ]);
         

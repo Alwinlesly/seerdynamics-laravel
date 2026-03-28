@@ -120,15 +120,31 @@
                 </div>
             </div>
             
-            <div class="td-item">
+            <div class="td-item task-attachment-item">
                 <div>
                     <span class="left-col">Attachment</span> 
-                    @if($task->attachment)
-                    <a href="{{ asset($task->attachment) }}" target="_blank" class="right-col">
-                        {{ basename($task->attachment) }}
-                    </a>
+                    @php
+                        $attachmentMap = [];
+                        foreach (($task->files ?? collect()) as $file) {
+                            $path = 'assets/uploads/tasks/' . $file->file_name;
+                            $attachmentMap[$file->file_name] = $path;
+                        }
+                        if (!empty($task->attachment)) {
+                            $legacyName = basename($task->attachment);
+                            if (!isset($attachmentMap[$legacyName])) {
+                                $attachmentMap[$legacyName] = $task->attachment;
+                            }
+                        }
+                    @endphp
+
+                    @if(count($attachmentMap) > 0)
+                        <div class="right-col d-flex flex-column task-attachment-list">
+                            @foreach($attachmentMap as $fileName => $path)
+                                <a href="{{ asset($path) }}" target="_blank" class="task-attachment-link">{{ $fileName }}</a>
+                            @endforeach
+                        </div>
                     @else
-                    <span class="right-col">N/A</span>
+                        <span class="right-col">N/A</span>
                     @endif
                 </div>
             </div>

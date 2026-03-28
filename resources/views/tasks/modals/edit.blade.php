@@ -68,12 +68,13 @@
                             <div class="chat-input py-0">
                                 <div class="left-ci d-flex align-items-center gap-0">
                                     <input type="text" class="form-control" id="editAttachmentName" placeholder="File" readonly>
-                                    <input type="file" id="edit_attachment" name="attachment" class="d-none" accept="image/*,.pdf,.doc,.docx">
+                                    <input type="file" id="edit_attachment" name="attachment[]" class="d-none" accept="image/*,.pdf,.doc,.docx" multiple>
                                     <label for="edit_attachment" class="upload-btn mb-0" style="cursor: pointer;">
                                         <i class="bi bi-upload"></i>
                                     </label>
                                 </div>
                             </div>
+                            <div id="editAttachmentPreview" class="mt-2 d-flex flex-wrap gap-2"></div>
                         </div>
 
                         <div class="col-md-4 edit-status-only">
@@ -180,6 +181,40 @@
 #editTaskModal .modal-body {
     position: relative;
 }
+
+#editAttachmentPreview .file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: #f0edfa;
+    color: #513998;
+    font-size: 12px;
+    max-width: 100%;
+}
+
+#editAttachmentPreview .file-chip .name {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#editAttachmentPreview .file-chip button {
+    border: 0;
+    background: transparent;
+    color: #513998;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+}
+
+#editAttachmentPreview .existing-file-chip {
+    background: #eef3ff;
+    color: #2f3f6b;
+}
 </style>
 <script>
     function editTaskSelect2Parent() {
@@ -187,6 +222,68 @@
     }
 
     let editServiceMasterOptions = [];
+    let selectedEditAttachments = [];
+    let editExistingAttachmentLabel = '';
+    let existingEditAttachments = [];
+
+    function editAttachmentKey(file) {
+        return [file.name, file.size, file.lastModified].join('__');
+    }
+
+    function syncEditAttachmentInput() {
+        const input = document.getElementById('edit_attachment');
+        const dataTransfer = new DataTransfer();
+        selectedEditAttachments.forEach(function(file) {
+            dataTransfer.items.add(file);
+        });
+        input.files = dataTransfer.files;
+    }
+
+    function renderEditAttachmentPreview() {
+        const $preview = $('#editAttachmentPreview');
+        $preview.empty();
+
+        existingEditAttachments.forEach(function(file) {
+            const $chip = $('<span>', { class: 'file-chip existing-file-chip', title: file.name });
+            $chip.append($('<span>', { class: 'name', text: file.name }));
+            $preview.append($chip);
+        });
+
+        if (!selectedEditAttachments.length) {
+            $('#editAttachmentName').val(editExistingAttachmentLabel || '');
+            return;
+        }
+
+        if (selectedEditAttachments.length === 1) {
+            $('#editAttachmentName').val(selectedEditAttachments[0].name);
+        } else {
+            $('#editAttachmentName').val(selectedEditAttachments.length + ' files selected');
+        }
+
+        selectedEditAttachments.forEach(function(file, index) {
+            const $chip = $('<span>', { class: 'file-chip', title: file.name });
+            $chip.append($('<span>', { class: 'name', text: file.name }));
+            $chip.append($('<button>', {
+                type: 'button',
+                class: 'remove-edit-attachment',
+                'data-index': index,
+                html: '&times;'
+            }));
+            $preview.append($chip);
+        });
+    }
+
+    function setEditExistingAttachments(files) {
+        existingEditAttachments = Array.isArray(files) ? files : [];
+        if (existingEditAttachments.length > 0) {
+            if (existingEditAttachments.length === 1) {
+                editExistingAttachmentLabel = existingEditAttachments[0].name || '';
+            } else {
+                editExistingAttachmentLabel = existingEditAttachments.length + ' files uploaded';
+            }
+        }
+        renderEditAttachmentPreview();
+    }
 
     function cacheEditServiceOptions() {
         editServiceMasterOptions = $('#edit_service option').not(':first').map(function() {
@@ -264,19 +361,55 @@
 
         $('#edit_project_id').on('change', filterEditServicesByProject);
         $('#editTaskModal').on('shown.bs.modal', function() {
+            editExistingAttachmentLabel = $('#editAttachmentName').val() || '';
+            selectedEditAttachments = [];
+            syncEditAttachmentInput();
+            renderEditAttachmentPreview();
+
             if (!editServiceMasterOptions.length) {
                 cacheEditServiceOptions();
             }
             initEditTaskSearchSelects();
             filterEditServicesByProject();
         });
+
+        $('#editTaskModal').on('hidden.bs.modal', function() {
+            editExistingAttachmentLabel = '';
+            existingEditAttachments = [];
+            selectedEditAttachments = [];
+            syncEditAttachmentInput();
+            $('#editAttachmentName').val('');
+            $('#editAttachmentPreview').empty();
+        });
+
         filterEditServicesByProject();
     });
 
-    // Show file name when file is selected
+    // Keep adding files across multiple picks (no need to hold Ctrl)
     $(document).on('change', '#edit_attachment', function() {
-        const fileName = this.files[0] ? this.files[0].name : '';
-        $('#editAttachmentName').val(fileName);
+        const incoming = Array.from(this.files || []);
+        if (!incoming.length) return;
+
+        const existingKeys = new Set(selectedEditAttachments.map(editAttachmentKey));
+        incoming.forEach(function(file) {
+            const key = editAttachmentKey(file);
+            if (!existingKeys.has(key)) {
+                selectedEditAttachments.push(file);
+                existingKeys.add(key);
+            }
+        });
+
+        syncEditAttachmentInput();
+        renderEditAttachmentPreview();
+    });
+
+    $(document).on('click', '.remove-edit-attachment', function() {
+        const index = Number($(this).data('index'));
+        if (Number.isInteger(index) && index >= 0 && index < selectedEditAttachments.length) {
+            selectedEditAttachments.splice(index, 1);
+            syncEditAttachmentInput();
+            renderEditAttachmentPreview();
+        }
     });
 
     // Submit edit form

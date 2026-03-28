@@ -155,6 +155,30 @@
 
 @endsection
 
+@push('styles')
+<style>
+/* Keep task detail attachment filenames inside modal box */
+.task-attachment-item > div {
+    align-items: flex-start;
+}
+
+.task-attachment-list {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    gap: 4px;
+}
+
+.task-attachment-link {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+}
+</style>
+@endpush
+
 @push('scripts')
 <script>
     const canEditTaskAction = @json(auth()->user()->inGroup(1) || permissions('task_edit'));
@@ -840,6 +864,13 @@
         $('#edit_additional_mail').val(task.additional_mail);
         const attachmentName = task.attachment ? String(task.attachment).split('/').pop() : '';
         $('#editAttachmentName').val(attachmentName);
+        if (typeof setEditExistingAttachments === 'function') {
+            const existingFiles = Array.isArray(task.attachments) ? task.attachments : [];
+            const normalized = existingFiles.length
+                ? existingFiles
+                : (attachmentName ? [{ name: attachmentName }] : []);
+            setEditExistingAttachments(normalized);
+        }
         
         // Populate Select2 fields for users
         if (task.users) {

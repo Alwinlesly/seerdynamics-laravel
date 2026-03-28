@@ -22,6 +22,7 @@ class MediaFile extends Model
      */
     protected $fillable = [
         'file_name',
+        'file_type',
         'file_size',
         'type',
         'type_id',
