@@ -244,10 +244,13 @@ class EmailService
     {
         return DB::table('tasks as t')
             ->join('projects as p', 'p.id', '=', 't.project_id')
-            ->join('users as u', 'u.id', '=', 'p.customer_id')
+            ->join('users as u', 'u.cuser_customer', '=', 'p.client_id')
+            ->join('users_groups as ug', 'ug.user_id', '=', 'u.id')
             ->where('t.id', $taskId)
+            ->where('ug.group_id', 3)
             ->whereNotNull('u.email')
             ->where('u.email', '!=', '')
+            ->distinct()
             ->select('u.email')
             ->get()
             ->toArray();
@@ -260,9 +263,12 @@ class EmailService
     {
         return DB::table('task_users as tu')
             ->join('users as u', 'u.id', '=', 'tu.user_id')
+            ->join('users_groups as ug', 'ug.user_id', '=', 'u.id')
             ->where('tu.task_id', $taskId)
+            ->whereIn('ug.group_id', [2, 4])
             ->whereNotNull('u.email')
             ->where('u.email', '!=', '')
+            ->distinct()
             ->select('u.email')
             ->get()
             ->toArray();

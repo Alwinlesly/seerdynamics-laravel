@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\EmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -104,6 +105,17 @@ class ConsultantController extends Controller
                 'user_id' => $newUser->id,
                 'group_id' => 2,
             ]);
+
+            if (config('mail.send_welcome') && !empty($newUser->email)) {
+                $consultantEmail = $newUser->email;
+                app()->terminating(function () use ($consultantEmail) {
+                    try {
+                        EmailService::sendWelcomeEmail($consultantEmail);
+                    } catch (\Exception $emailEx) {
+                        \Log::error('Welcome email failed for consultant: ' . $emailEx->getMessage());
+                    }
+                });
+            }
             
             return response()->json([
                 'error' => false,

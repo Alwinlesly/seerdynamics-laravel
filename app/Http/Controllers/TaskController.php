@@ -564,12 +564,30 @@ class TaskController extends Controller
                 }
             }
             
-            // Assign users (Consultants and Customer Users)
+            // Mirror legacy CI assignment behavior:
+            // - if users are selected, assign them
+            // - if creator is customer user (group 4), also assign creator even when users are selected
+            // - if no users are selected, assign creator
+            $assignedUserIds = [];
             if ($request->has('users') && is_array($request->users)) {
-                $task->users()->sync($request->users);
-            } else {
-                $task->users()->sync([]);
+                $assignedUserIds = collect($request->users)
+                    ->filter(fn ($id) => is_numeric($id))
+                    ->map(fn ($id) => (int) $id)
+                    ->unique()
+                    ->values()
+                    ->all();
             }
+
+            $currentUserId = (int) auth()->id();
+            if (auth()->user()->inGroup(4)) {
+                if (!in_array($currentUserId, $assignedUserIds, true)) {
+                    $assignedUserIds[] = $currentUserId;
+                }
+            } elseif (empty($assignedUserIds)) {
+                $assignedUserIds[] = $currentUserId;
+            }
+
+            $task->users()->sync($assignedUserIds);
             
             // Send email notifications (replicating CI's mail_me logic)
             try {
