@@ -172,15 +172,7 @@ class TaskController extends Controller
             if ($request->project) {
                 $query->where('project_id', $request->project);
             }
-            
-            // Status filter - compare by ID not title
-            if ($request->status) {
-                $statusRecord = TaskStatus::where('title', $request->status)->first();
-                if ($statusRecord) {
-                    $query->where('status', $statusRecord->id);
-                }
-            }
-            
+
             // Priority filter
             if ($request->priority) {
                 $query->where('priority', $request->priority);
@@ -191,6 +183,64 @@ class TaskController extends Controller
                 $query->whereHas('project', function($q) use ($request) {
                     $q->where('client_id', $request->customer);
                 });
+            }
+
+            // Build dynamic status summary counts using the current filters,
+            // but without applying an explicit status filter.
+            $statusCountsRows = (clone $query)
+                ->leftJoin('task_status as ts', 'tasks.status', '=', 'ts.id')
+                ->selectRaw("COALESCE(ts.title, 'Not Started') as status_title, COUNT(*) as total")
+                ->groupBy('ts.title')
+                ->get();
+
+            $statusCounts = [];
+            foreach ($statusCountsRows as $statusRow) {
+                $key = strtolower(preg_replace('/[\s_-]+/', '', (string) $statusRow->status_title));
+                $statusCounts[$key] = (int) $statusRow->total;
+            }
+
+            $preferredStatusOrder = [
+                'todo',
+                'inprogress',
+                'undercustomerreview',
+                'onhold',
+                'completed',
+                'closed',
+            ];
+
+            $allStatuses = TaskStatus::all()->pluck('title')->all();
+            $normalizedDbTitles = [];
+            foreach ($allStatuses as $statusTitle) {
+                $normalizedDbTitles[strtolower(preg_replace('/[\s_-]+/', '', (string) $statusTitle))] = $statusTitle;
+            }
+
+            $orderedStatusTitles = [];
+            foreach ($preferredStatusOrder as $normalizedStatus) {
+                if (isset($normalizedDbTitles[$normalizedStatus])) {
+                    $orderedStatusTitles[] = $normalizedDbTitles[$normalizedStatus];
+                }
+            }
+            foreach ($allStatuses as $statusTitle) {
+                if (!in_array($statusTitle, $orderedStatusTitles, true)) {
+                    $orderedStatusTitles[] = $statusTitle;
+                }
+            }
+
+            $statusSummary = [];
+            foreach ($orderedStatusTitles as $statusTitle) {
+                $normalizedStatus = strtolower(preg_replace('/[\s_-]+/', '', (string) $statusTitle));
+                $statusSummary[] = [
+                    'title' => $statusTitle,
+                    'count' => $statusCounts[$normalizedStatus] ?? 0,
+                ];
+            }
+
+            // Status filter - compare by ID not title
+            if ($request->status) {
+                $statusRecord = TaskStatus::where('title', $request->status)->first();
+                if ($statusRecord) {
+                    $query->where('status', $statusRecord->id);
+                }
             }
             
             //Sorting
@@ -270,7 +320,8 @@ class TaskController extends Controller
             return response()->json([
                 'error' => false,
                 'total' => $total,
-                'rows' => $rows
+                'rows' => $rows,
+                'status_summary' => $statusSummary,
             ]);
             
         } catch (\Exception $e) {

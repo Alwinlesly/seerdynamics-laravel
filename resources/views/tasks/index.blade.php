@@ -40,6 +40,8 @@
                     </div>
                 </div>
 
+                <div class="ticket-status-summary" id="ticketStatusSummary"></div>
+
                 <div class="sel-wrapper">
                     @if(!auth()->user()->inGroup(4))
                     <select class="form-select" id="customerFilter">
@@ -213,6 +215,30 @@
 #addCommentForm .comment-upload-row .upload-trigger {
     z-index: 2;
 }
+
+.ticket-status-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 4px 0 14px;
+}
+
+.status-summary-chip {
+    border: 1px solid #ff4d6d;
+    border-radius: 8px;
+    background: #fff;
+    color: #6f6f6f;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.2;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+.status-summary-chip.active {
+    background: #ff4d6d;
+    color: #fff;
+}
 </style>
 @endpush
 
@@ -294,6 +320,12 @@
             loadTasks();
         });
 
+        // Summary chip click -> apply status filter and reload
+        $(document).on('click', '.status-summary-chip', function() {
+            const statusTitle = String($(this).data('status') || '');
+            $('#statusFilter').val(statusTitle).trigger('change');
+        });
+
         // Pagination
         $('#prevBtn').on('click', function() {
             if (currentPage > 1) {
@@ -360,6 +392,7 @@
             success: function(response) {
                 totalRecords = response.total;
                 renderTasks(response.rows);
+                renderStatusSummary(response.status_summary || []);
                 updatePagination();
             },
             error: function(error) {
@@ -431,6 +464,30 @@
         }
 
         $('#tasksTableBody').html(html);
+    }
+
+    function renderStatusSummary(statusSummary) {
+        const $summary = $('#ticketStatusSummary');
+        if (!$summary.length) return;
+
+        if (!Array.isArray(statusSummary) || statusSummary.length === 0) {
+            $summary.html('');
+            return;
+        }
+
+        const selectedStatus = String($('#statusFilter').val() || '').trim().toLowerCase();
+        let html = '';
+        statusSummary.forEach(function(item) {
+            const title = String(item.title || '').trim();
+            const count = Number(item.count || 0);
+            const isActive = title.toLowerCase() === selectedStatus;
+            html += `
+                <button type="button" class="status-summary-chip ${isActive ? 'active' : ''}" data-status="${title}">
+                    ${title}(${count})
+                </button>
+            `;
+        });
+        $summary.html(html);
     }
 
     function updatePagination() {
