@@ -160,11 +160,33 @@ class TaskController extends Controller
                 });
             }
             
-            // Search filter
-            if ($request->search) {
-                $query->where(function($q) use ($request) {
-                    $q->where('title', 'like', '%'.$request->search.'%')
-                      ->orWhere('description', 'like', '%'.$request->search.'%');
+            // Search filter (all visible columns except Priority and Estimate)
+            $search = trim((string) $request->input('search', ''));
+            if ($search !== '') {
+                $query->where(function($q) use ($search) {
+                    $q->where('tasks.title', 'like', "%{$search}%")
+                      ->orWhereRaw("CONCAT('#', tasks.id) LIKE ?", ["%{$search}%"])
+                      ->orWhereRaw("DATE_FORMAT(tasks.created, '%d-%b-%Y') LIKE ?", ["%{$search}%"])
+                      ->orWhereHas('project', function($projectQ) use ($search) {
+                          $projectQ->where('project_id', 'like', "%{$search}%")
+                              ->orWhere('title', 'like', "%{$search}%")
+                              ->orWhereRaw("CONCAT(COALESCE(project_id, ''), ' ', COALESCE(title, '')) LIKE ?", ["%{$search}%"])
+                              ->orWhereRaw("CONCAT(COALESCE(title, ''), ' ', COALESCE(project_id, '')) LIKE ?", ["%{$search}%"])
+                              ->orWhereHas('client', function($customerQ) use ($search) {
+                                  $customerQ->whereRaw(
+                                      "COALESCE(NULLIF(TRIM(company), ''), TRIM(CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')))) LIKE ?",
+                                      ["%{$search}%"]
+                                  );
+                              });
+                      })
+                      ->orWhereHas('creator', function($creatorQ) use ($search) {
+                          $creatorQ->whereRaw("TRIM(CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, ''))) LIKE ?", ["%{$search}%"])
+                              ->orWhere('first_name', 'like', "%{$search}%")
+                              ->orWhere('last_name', 'like', "%{$search}%");
+                      })
+                      ->orWhereHas('taskStatus', function($statusQ) use ($search) {
+                          $statusQ->where('title', 'like', "%{$search}%");
+                      });
                 });
             }
             

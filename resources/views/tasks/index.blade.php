@@ -308,8 +308,8 @@
         
         loadTasks();
 
-        // Search
-        $('#searchInput').on('keyup', function() {
+        // Search (input/search covers typing + clear button)
+        $('#searchInput').on('input search', function() {
             currentPage = 1;
             loadTasks();
         });
