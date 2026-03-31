@@ -31,7 +31,11 @@ if (!function_exists('company_logo')) {
 
 if (!function_exists('favicon')) {
     function favicon() {
-        return get_setting('general', 'favicon') ?? 'favicon.ico';
+        $icon = get_setting('general', 'favicon');
+        if (!empty($icon) && file_exists(public_path('assets/uploads1/logos/' . $icon))) {
+            return $icon;
+        }
+        return 'logo.png';
     }
 }
 
