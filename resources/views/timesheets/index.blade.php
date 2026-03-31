@@ -197,8 +197,8 @@ $(document).ready(function() {
     // Load timesheets on page load
     loadTimesheets();
     
-    // Search input
-    $('#searchInput').on('keyup', function() {
+    // Search input (typing + clear button)
+    $('#searchInput').on('input search change', function() {
         currentPage = 1; // Reset to first page
         loadTimesheets();
     });
@@ -235,16 +235,12 @@ const urlParams = new URLSearchParams(window.location.search);
 const projectFilter = urlParams.get('project') || '';
 
 function loadTimesheets() {
-    const search = $('#searchInput').val() || '';
+    const search = ($('#searchInput').val() || '').trim();
     const user_id = $('#consultantFilter').val() || '';
     const status = $('#statusFilter').val() || '';
     
     const offset = (currentPage - 1) * itemsPerPage;
     
-    console.log('Loading timesheets...');
-    console.log('Filters:', { search, user_id, status });
-    console.log('Pagination:', { currentPage, itemsPerPage, offset });
-    console.log('URL:', '{{ route("timesheets.get") }}');
     
     $.ajax({
         url: '{{ route("timesheets.get") }}',
@@ -258,16 +254,9 @@ function loadTimesheets() {
             limit: itemsPerPage
         },
         beforeSend: function() {
-            console.log('AJAX request starting...');
             $('#timesheetTableBody').html('<tr><td colspan="7" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
         },
         success: function(response) {
-            console.log('AJAX Success!');
-            console.log('Full response:', response);
-            console.log('Response type:', typeof response);
-            console.log('Total:', response.total);
-            console.log('Rows:', response.rows);
-            console.log('Rows length:', response.rows ? response.rows.length : 'undefined');
             
             if (response && response.rows !== undefined) {
                 totalRecords = response.total || 0;
@@ -291,22 +280,16 @@ function loadTimesheets() {
             $('#totalCount').text('0');
         },
         complete: function() {
-            console.log('AJAX request completed');
         }
     });
 }
 
 function renderTimesheets(timesheets, total) {
-    console.log('renderTimesheets called with:', timesheets);
-    console.log('Timesheets is array?:', Array.isArray(timesheets));
-    console.log('Timesheets length:', timesheets ? timesheets.length : 'null/undefined');
-    console.log('Total:', total);
     
     const tbody = $('#timesheetTableBody');
     tbody.empty();
     
     if (!timesheets || timesheets.length === 0) {
-        console.log('No timesheets found, showing message');
         tbody.append(`
             <tr>
                 <td colspan="7" class="text-center">No timesheets found</td>
@@ -316,11 +299,9 @@ function renderTimesheets(timesheets, total) {
         return;
     }
     
-    console.log('Rendering', timesheets.length, 'timesheets');
     $('#totalCount').text(total || timesheets.length);
     
     timesheets.forEach(function(timesheet, index) {
-        console.log('Rendering timesheet', index, ':', timesheet);
 
         const managementActions = `
                         ${timesheet.can_edit ? `
@@ -367,7 +348,6 @@ function renderTimesheets(timesheets, total) {
         tbody.append(row);
     });
     
-    console.log('Finished rendering all timesheets');
 }
 
 function renderPagination() {

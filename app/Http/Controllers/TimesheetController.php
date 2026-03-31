@@ -52,101 +52,41 @@ class TimesheetController extends Controller
                 return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
             }
             
-            // Check if table exists
-            $tableExists = DB::select("SHOW TABLES LIKE 'weekly_timesheet'");
-            
-            \Log::info('Timesheet table check', ['exists' => !empty($tableExists)]);
-            
-            if (empty($tableExists)) {
-                \Log::warning('weekly_timesheet table does not exist');
-                return response()->json([
-                    'total' => 0,
-                    'rows'  => []
-                ]);
-            }
-            
             // Bootstrap Table parameters (matching CodeIgniter)
             $offset = $request->input('offset', 0);
             $limit  = $request->input('limit', 10);
             $sort   = $request->input('sort', 'id');
             $order  = strtoupper($request->input('order', 'DESC')) === 'ASC' ? 'ASC' : 'DESC';
-            $search = $request->input('search', '');
+            $search = trim((string) $request->input('search', ''));
 
             $allowedSorts = ['id', 'work_week', 'created'];
             if (!in_array($sort, $allowedSorts, true)) {
                 $sort = 'id';
             }
             
-            // Base query with user join and calculated fields using subqueries
-            $query = WeeklyTimesheet::query()
+            // Base filtered query (lightweight) for count + data clone
+            $baseQuery = WeeklyTimesheet::query()
                 ->join('users as u', 'u.id', '=', 'weekly_timesheet.user_id')
-                ->select(
-                    'weekly_timesheet.*', 
-                    DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user"),
-                    // Billable hours subquery
-                    DB::raw("(
-                        SELECT COALESCE(SUM(wh.hours), 0)
-                        FROM weekly_timesheet_project_task_hours wh
-                        JOIN weekly_timesheet_project_task_details wp ON wh.timesheet_project_task_id = wp.id
-                        WHERE wp.timesheet_id = weekly_timesheet.id
-                        AND wh.status = 1
-                        AND wp.status = 1
-                        AND wp.billable = 1
-                    ) as billable_hours"),
-                    // Non-billable hours subquery
-                    DB::raw("(
-                        SELECT COALESCE(SUM(wh.hours), 0)
-                        FROM weekly_timesheet_project_task_hours wh
-                        JOIN weekly_timesheet_project_task_details wp ON wh.timesheet_project_task_id = wp.id
-                        WHERE wp.timesheet_id = weekly_timesheet.id
-                        AND wh.status = 1
-                        AND wp.status = 1
-                        AND wp.billable = 0
-                    ) as non_billable_hours"),
-                    // Total details count
-                    DB::raw("(
-                        SELECT COUNT(*)
-                        FROM weekly_timesheet_project_task_details
-                        WHERE timesheet_id = weekly_timesheet.id
-                        AND status = 1
-                    ) as total_details"),
-                    // Approved details count
-                    DB::raw("(
-                        SELECT COUNT(*)
-                        FROM weekly_timesheet_project_task_details
-                        WHERE timesheet_id = weekly_timesheet.id
-                        AND status = 1
-                        AND approved_status = 1
-                    ) as approved_details"),
-                    // Rejected details count
-                    DB::raw("(
-                        SELECT COUNT(*)
-                        FROM weekly_timesheet_project_task_details
-                        WHERE timesheet_id = weekly_timesheet.id
-                        AND status = 1
-                        AND approved_status = 2
-                    ) as rejected_details")
-                )
                 ->where('weekly_timesheet.status', 1);
             
             // Role-based filtering (exact CodeIgniter logic)
             if ($user->inGroup(1)) { // Admin
                 if ($request->filled('user_id')) {
-                    $query->where('weekly_timesheet.user_id', $request->user_id);
+                    $baseQuery->where('weekly_timesheet.user_id', $request->user_id);
                 }
             } else { // Consultant
-                $query->where('weekly_timesheet.user_id', $user->id);
+                $baseQuery->where('weekly_timesheet.user_id', $user->id);
             }
             
             // Status filter
             if ($request->filled('status')) {
-                $query->where('weekly_timesheet.submit_or_draft', $request->status);
+                $baseQuery->where('weekly_timesheet.submit_or_draft', $request->status);
             }
             
             // Project filter — /projects/{id} Timesheet button passes ?project={id}
             if ($request->filled('project')) {
                 $projectId = $request->project;
-                $query->whereExists(function ($sub) use ($projectId) {
+                $baseQuery->whereExists(function ($sub) use ($projectId) {
                     $sub->select(DB::raw(1))
                         ->from('weekly_timesheet_project_task_details as wpd')
                         ->whereColumn('wpd.timesheet_id', 'weekly_timesheet.id')
@@ -155,18 +95,65 @@ class TimesheetController extends Controller
                 });
             }
             
-            // Search filter (exact CodeIgniter logic)
+            // Search filter (ID, consultant, work week)
             if (!empty($search)) {
-                $query->where(function($q) use ($search) {
+                $search = trim((string) $search);
+                $baseQuery->where(function($q) use ($search) {
                     $q->where('u.first_name', 'like', "%{$search}%")
                       ->orWhere('u.last_name', 'like', "%{$search}%")
+                      ->orWhereRaw("TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))) LIKE ?", ["%{$search}%"])
                       ->orWhere('weekly_timesheet.work_week', 'like', "%{$search}%")
-                      ->orWhere('weekly_timesheet.id', 'like', "%{$search}%");
+                      ->orWhere('weekly_timesheet.id', 'like', "%{$search}%")
+                      ->orWhereRaw("CONCAT('T', LPAD(weekly_timesheet.id, 5, '0')) LIKE ?", ["%{$search}%"]);
                 });
             }
             
-            // Get total count
-            $total = $query->count();
+            // Fast count from lightweight query
+            $total = (clone $baseQuery)->count('weekly_timesheet.id');
+
+            // Data query with calculated fields using subqueries
+            $query = (clone $baseQuery)->select(
+                'weekly_timesheet.*',
+                DB::raw("CONCAT(u.first_name, ' ', u.last_name) as user"),
+                DB::raw("(
+                    SELECT COALESCE(SUM(wh.hours), 0)
+                    FROM weekly_timesheet_project_task_hours wh
+                    JOIN weekly_timesheet_project_task_details wp ON wh.timesheet_project_task_id = wp.id
+                    WHERE wp.timesheet_id = weekly_timesheet.id
+                    AND wh.status = 1
+                    AND wp.status = 1
+                    AND wp.billable = 1
+                ) as billable_hours"),
+                DB::raw("(
+                    SELECT COALESCE(SUM(wh.hours), 0)
+                    FROM weekly_timesheet_project_task_hours wh
+                    JOIN weekly_timesheet_project_task_details wp ON wh.timesheet_project_task_id = wp.id
+                    WHERE wp.timesheet_id = weekly_timesheet.id
+                    AND wh.status = 1
+                    AND wp.status = 1
+                    AND wp.billable = 0
+                ) as non_billable_hours"),
+                DB::raw("(
+                    SELECT COUNT(*)
+                    FROM weekly_timesheet_project_task_details
+                    WHERE timesheet_id = weekly_timesheet.id
+                    AND status = 1
+                ) as total_details"),
+                DB::raw("(
+                    SELECT COUNT(*)
+                    FROM weekly_timesheet_project_task_details
+                    WHERE timesheet_id = weekly_timesheet.id
+                    AND status = 1
+                    AND approved_status = 1
+                ) as approved_details"),
+                DB::raw("(
+                    SELECT COUNT(*)
+                    FROM weekly_timesheet_project_task_details
+                    WHERE timesheet_id = weekly_timesheet.id
+                    AND status = 1
+                    AND approved_status = 2
+                ) as rejected_details")
+            );
             
             // Get paginated results
             $timesheets = $query->orderBy("weekly_timesheet.{$sort}", $order)
@@ -231,11 +218,16 @@ class TimesheetController extends Controller
                     }
                 }
                 
+                $formattedWorkWeek = $timesheet->work_week ?? 'N/A';
+                if (!empty($timesheet->start_date) && !empty($timesheet->end_date)) {
+                    $formattedWorkWeek = date('d-m-Y', strtotime($timesheet->start_date)) . '-' . date('d-m-Y', strtotime($timesheet->end_date));
+                }
+
                 $rows[] = [
                     'id'             => $timesheet->id,
                     'timesheet_id'   => 'T' . str_pad($timesheet->id, 5, '0', STR_PAD_LEFT),
                     'user'           => $timesheet->user,
-                    'work_week'      => $timesheet->work_week ?? 'N/A',
+                    'work_week'      => $formattedWorkWeek,
                     'billable'       => $billableHours ?? 0,
                     'non_billable'   => $nonBillableHours ?? 0,
                     'status'         => $status,
@@ -245,11 +237,6 @@ class TimesheetController extends Controller
                     'can_delete'     => $canDelete,
                 ];
             }
-            
-            \Log::info('Timesheets query result', [
-                'total'      => $total,
-                'rows_count' => count($rows)
-            ]);
             
             // Return Bootstrap Table format (exact CodeIgniter format)
             return response()->json([
@@ -319,7 +306,7 @@ class TimesheetController extends Controller
             // Parse dates (input may be dd-mm-yyyy or Y-m-d)
             $startDate = $this->parseFlexDate($request->start_date);
             $endDate   = $this->parseFlexDate($request->end_date);
-            $workWeek  = $request->start_date . '-' . $request->end_date;
+            $workWeek  = date('d-m-Y', strtotime($startDate)) . '-' . date('d-m-Y', strtotime($endDate));
 
             // Insert header record
             $insertData = [
@@ -528,7 +515,7 @@ class TimesheetController extends Controller
 
             $startDate = $this->parseFlexDate($request->start_date);
             $endDate   = $this->parseFlexDate($request->end_date);
-            $workWeek  = $request->start_date . '-' . $request->end_date;
+            $workWeek  = date('d-m-Y', strtotime($startDate)) . '-' . date('d-m-Y', strtotime($endDate));
 
             // Update the header row
             DB::table('weekly_timesheet')->where('id', $id)->update([
