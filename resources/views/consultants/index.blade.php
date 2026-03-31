@@ -272,9 +272,25 @@
 
     // Pagination
     function getVisibleRows() {
-        var value = $('#searchInput').val().toLowerCase();
+        var value = ($('#searchInput').val() || '').trim().toLowerCase();
         return $('.consultant-row').filter(function() {
-            return $(this).text().toLowerCase().indexOf(value) > -1;
+            if (!value) return true;
+
+            var consultant = $(this).find('td:nth-child(1)').text().toLowerCase();
+            var email = $(this).find('td:nth-child(2)').text().toLowerCase();
+            var mobile = $(this).find('td:nth-child(3)').text().toLowerCase();
+            var role = $(this).find('td:nth-child(4)').text().toLowerCase();
+            var project = $(this).find('td:nth-child(5)').text().toLowerCase();
+            var ticket = $(this).find('td:nth-child(6)').text().toLowerCase();
+            var status = $(this).find('td:nth-child(7)').text().toLowerCase();
+
+            return consultant.indexOf(value) > -1 ||
+                   email.indexOf(value) > -1 ||
+                   mobile.indexOf(value) > -1 ||
+                   role.indexOf(value) > -1 ||
+                   project.indexOf(value) > -1 ||
+                   ticket.indexOf(value) > -1 ||
+                   status.indexOf(value) > -1;
         });
     }
 
@@ -358,8 +374,8 @@
         if (currentPage < totalPages) { currentPage++; updatePagination(); }
     });
 
-    // Search with pagination reset
-    $('#searchInput').on('keyup', function() {
+    // Search with pagination reset (typing + clear button)
+    $('#searchInput').on('input search change', function() {
         currentPage = 1;
         updatePagination();
     });
