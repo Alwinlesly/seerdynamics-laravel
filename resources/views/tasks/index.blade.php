@@ -44,7 +44,7 @@
 
                 <div class="sel-wrapper">
                     @if(!auth()->user()->inGroup(4))
-                    <select class="form-select" id="customerFilter">
+                    <select class="form-select searchable-filter" id="customerFilter">
                         <option value="">Customer</option>
                         @if(isset($customers))
                             @foreach($customers as $customer)
@@ -54,28 +54,28 @@
                     </select>
                     @endif
 
-                    <select class="form-select" id="projectFilter">
+                    <select class="form-select searchable-filter" id="projectFilter">
                         <option value="">Project</option>
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}">{{ $project->project_id }} - {{ $project->title }}</option>
                         @endforeach
                     </select>
 
-                    <select class="form-select" id="statusFilter">
+                    <select class="form-select searchable-filter" id="statusFilter">
                         <option value="">Status</option>
                         @foreach($task_statuses as $status)
                             <option value="{{ $status->title }}">{{ $status->title }}</option>
                         @endforeach
                     </select>
 
-                    <select class="form-select" id="priorityFilter">
+                    <select class="form-select searchable-filter" id="priorityFilter">
                         <option value="">Priority</option>
                         @foreach($priorities as $priority)
                             <option value="{{ $priority->id }}">{{ $priority->title }}</option>
                         @endforeach
                     </select>
 
-                    <select class="form-select" id="sortFilter">
+                    <select class="form-select searchable-filter" id="sortFilter">
                         <option value="">Sort</option>
                         <option value="id">Latest</option>
                         <option value="title">Title</option>
@@ -224,7 +224,7 @@
 }
 
 .status-summary-chip {
-    border: 1px solid #ff4d6d;
+    border: 1px solid #503897;
     border-radius: 8px;
     background: #fff;
     color: #6f6f6f;
@@ -236,8 +236,61 @@
 }
 
 .status-summary-chip.active {
-    background: #ff4d6d;
+    background: #503897;
     color: #fff;
+}
+
+.sel-wrapper .select2-container {
+    min-width: 170px;
+    width: 170px !important;
+    flex: 0 0 170px;
+}
+
+.sel-wrapper .select2-container .select2-selection--single {
+    height: 42px;
+    border: none;
+    border-radius: 8px;
+    background-color: #F5F5F5;
+    display: flex;
+    align-items: center;
+}
+
+.sel-wrapper .select2-container .select2-selection__rendered {
+    color: #9A9A9A;
+    line-height: 40px;
+    padding-left: 12px;
+    padding-right: 28px;
+}
+
+.sel-wrapper .select2-container .select2-selection__arrow {
+    height: 40px;
+    right: 8px;
+}
+
+.sel-wrapper .select2-container--default.select2-container--open .select2-selection--single,
+.sel-wrapper .select2-container--default.select2-container--focus .select2-selection--single {
+    border: none;
+    box-shadow: none;
+}
+
+.right-section .sel-wrapper {
+    justify-content: flex-start;
+    gap: 12px;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #503897 !important;
+    color: #fff !important;
+}
+
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #ece7fb !important;
+    color: #2b2b2b !important;
+}
+
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+    background-color: #503897 !important;
+    color: #fff !important;
 }
 </style>
 @endpush
@@ -299,6 +352,12 @@
     }
 
     $(document).ready(function() {
+        // Match existing project behavior: searchable filter dropdowns.
+        $('.searchable-filter').select2({
+            width: 'resolve',
+            minimumResultsForSearch: 0
+        });
+
         // Check if project filter is passed in URL
         const urlParams = new URLSearchParams(window.location.search);
         const projectId = urlParams.get('project');
