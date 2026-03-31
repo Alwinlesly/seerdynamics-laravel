@@ -105,8 +105,8 @@ $(document).ready(function() {
     // Load customers on page load
     loadCustomers();
     
-    // Search with debounce
-    $('#searchInput').on('input', function() {
+    // Search with debounce (covers typing + clear button)
+    $('#searchInput').on('input search', function() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(function() {
             currentPage = 1;

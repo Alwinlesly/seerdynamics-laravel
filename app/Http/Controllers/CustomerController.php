@@ -53,13 +53,19 @@ class CustomerController extends Controller
 
             // Search filter
             if ($request->filled('search')) {
-                $search = $request->search;
+                $search = trim((string) $request->search);
                 $query->where(function($q) use ($search) {
                     $q->where('users.first_name', 'like', "%{$search}%")
                       ->orWhere('users.last_name', 'like', "%{$search}%")
                       ->orWhere('users.email', 'like', "%{$search}%")
                       ->orWhere('users.company', 'like', "%{$search}%")
-                      ->orWhere('users.phone', 'like', "%{$search}%");
+                      ->orWhere('users.customer_code', 'like', "%{$search}%")
+                      ->orWhere('users.contact_person_desg', 'like', "%{$search}%")
+                      ->orWhere('users.address', 'like', "%{$search}%")
+                      ->orWhere('users.phone', 'like', "%{$search}%")
+                      ->orWhereRaw("CONCAT(COALESCE(users.customer_code, ''), ' - ', COALESCE(users.company, '')) LIKE ?", ["%{$search}%"])
+                      ->orWhereRaw("CONCAT(COALESCE(users.contact_person_desg, ''), ' ', COALESCE(users.first_name, '')) LIKE ?", ["%{$search}%"])
+                      ->orWhereRaw("CASE WHEN users.active = 1 THEN 'Active' ELSE 'Inactive' END LIKE ?", ["%{$search}%"]);
                 });
             }
 
