@@ -190,9 +190,9 @@ $(document).ready(function() {
         }
         
         customerUsers.forEach(function(cuser) {
-            const initials = getInitials(cuser.first_name, cuser.last_name);
-            const avatarHtml = cuser.profile_picture 
-                ? `<img src="${cuser.profile_picture}" alt="${cuser.name}" class="rounded-circle profile-img">`
+            const initials = getInitials(cuser.first_name, cuser.last_name) || 'NA';
+            const avatarHtml = cuser.profile_picture
+                ? `<img src="${cuser.profile_picture}" alt="" class="rounded-circle profile-img" onerror="this.outerHTML='<div class=&quot;avatar-circle avatar-gradient&quot;>${initials}</div>';">`
                 : `<div class="avatar-circle avatar-gradient">${initials}</div>`;
             
             const statusClass = cuser.status === 'Active' ? 'status-active' : 'status-incative';
@@ -303,11 +303,13 @@ $(document).ready(function() {
     height: 40px;
     border-radius: 50%;
     display: flex;
-    align-items-center;
+    align-items: center;
     justify-content: center;
     font-weight: bold;
     color: white;
     font-size: 14px;
+    flex-shrink: 0;
+    text-transform: uppercase;
 }
 
 .avatar-gradient {
@@ -317,6 +319,27 @@ $(document).ready(function() {
 .profile-img {
     width: 40px;
     height: 40px;
+    object-fit: cover;
+    display: block;
+    flex-shrink: 0;
+    border: 1px solid #ececf3;
+    background: #f6f7fb;
+}
+
+#customerUsersTableBody td {
+    vertical-align: middle;
+}
+
+.con_name {
+    min-width: 220px;
+}
+
+.con_name .fw-medium {
+    display: inline-block;
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 </style>
 @endpush
