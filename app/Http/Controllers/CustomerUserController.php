@@ -60,6 +60,7 @@ class CustomerUserController extends Controller
             $query = User::query()
                 ->select('users.*')
                 ->join('users_groups', 'users.id', '=', 'users_groups.user_id')
+                ->leftJoin('users as parent_customer', 'parent_customer.id', '=', 'users.cuser_customer')
                 ->whereIn('users_groups.group_id', [3, 4]) // Customer and customer user groups
                 ->where('users.is_company', 0); // Only individual users, not companies
 
@@ -75,12 +76,14 @@ class CustomerUserController extends Controller
 
             // Search filter
             if ($request->filled('search')) {
-                $search = $request->search;
+                $search = trim((string) $request->search);
                 $query->where(function($q) use ($search) {
                     $q->where('users.first_name', 'like', "%{$search}%")
                       ->orWhere('users.last_name', 'like', "%{$search}%")
+                      ->orWhereRaw("TRIM(CONCAT(COALESCE(users.first_name, ''), ' ', COALESCE(users.last_name, ''))) LIKE ?", ["%{$search}%"])
                       ->orWhere('users.email', 'like', "%{$search}%")
-                      ->orWhere('users.phone', 'like', "%{$search}%");
+                      ->orWhere('users.phone', 'like', "%{$search}%")
+                      ->orWhere('parent_customer.company', 'like', "%{$search}%");
                 });
             }
 

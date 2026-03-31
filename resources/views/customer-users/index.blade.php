@@ -108,8 +108,8 @@ $(document).ready(function() {
     // Load customer users on page load
     loadCustomerUsers();
     
-    // Search with debounce
-    $('#searchInput').on('input', function() {
+    // Search with debounce (typing + clear button)
+    $('#searchInput').on('input search', function() {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(function() {
             currentPage = 1;
