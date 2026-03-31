@@ -45,12 +45,6 @@
                         <option value="{{ $project->id }}">{{ $project->project_id }} - {{ $project->title }}</option>
                         @endforeach
                     </select>
-                    <select class="form-select" id="consultantFilter">
-                        <option value="">Consultant</option>
-                        @foreach($consultants as $consultant)
-                        <option value="{{ $consultant->id }}">{{ $consultant->first_name }}</option>
-                        @endforeach
-                    </select>
                     <select class="form-select" id="customerFilter">
                         <option value="">Customer</option>
                         @foreach($customers as $customer)
@@ -150,7 +144,7 @@ $(document).ready(function() {
     }, 500));
     
     // Filters
-    $('#projectFilter, #consultantFilter, #customerFilter, #statusFilter, #sortFilter').on('change', function() {
+    $('#projectFilter, #customerFilter, #statusFilter, #sortFilter').on('change', function() {
         currentPage = 1;
         loadProjects();
     });
@@ -172,14 +166,13 @@ $(document).ready(function() {
 function loadProjects() {
     const search = $('#searchInput').val();
     const project = $('#projectFilter').val();
-    const consultant = $('#consultantFilter').val();
     const customer = $('#customerFilter').val();
     const status = $('#statusFilter').val();
     const sort = $('#sortFilter').val();
     
     console.log('Loading projects...', {
         url: '{{ route("projects.list") }}',
-        search, project, consultant, customer, status, sort
+        search, project, customer, status, sort
     });
     
     $.ajax({
@@ -189,7 +182,6 @@ function loadProjects() {
             _token: '{{ csrf_token() }}',
             search: search,
             project: project,
-            consultant: consultant,
             customer: customer,
             status: status,
             sort: sort,

@@ -53,7 +53,20 @@ if (!function_exists('smtp_username')) {
 
 if (!function_exists('footer_text')) {
     function footer_text() {
-        return get_setting('general', 'footer_text') ?? 'Â© ' . date('Y') . ' Seer Dynamics';
+        $currentYear = date('Y');
+        $text = (string) (get_setting('general', 'footer_text') ?? '');
+
+        if ($text === '') {
+            return '© ' . $currentYear . ' Seer Dynamics';
+        }
+
+        $text = str_replace(['{year}', '{{year}}'], $currentYear, $text);
+
+        if (preg_match('/\b(19|20)\d{2}\b/', $text)) {
+            $text = preg_replace('/\b(19|20)\d{2}\b/', $currentYear, $text, 1);
+        }
+
+        return $text;
     }
 }
 
@@ -134,3 +147,4 @@ if (!function_exists('company_details')) {
         return $data->{$type} ?? '';
     }
 }
+
