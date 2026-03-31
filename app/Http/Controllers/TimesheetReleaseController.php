@@ -76,7 +76,7 @@ class TimesheetReleaseController extends Controller
             $limit = $request->input('limit', 10);
             $sort = $request->input('sort', 'id');
             $order = $request->input('order', 'DESC');
-            $search = $request->input('search', '');
+            $search = trim((string) $request->input('search', ''));
             
             // Validate sort column to prevent SQL injection
             $allowedSorts = ['id', 'date', 'user_id'];
@@ -138,10 +138,17 @@ class TimesheetReleaseController extends Controller
             if (!empty($search)) {
                 $query->where(function($q) use ($search) {
                     $q->where('uc.first_name', 'like', "%{$search}%")
+                      ->orWhere('uc.last_name', 'like', "%{$search}%")
+                      ->orWhereRaw("TRIM(CONCAT(COALESCE(uc.first_name, ''), ' ', COALESCE(uc.last_name, ''))) LIKE ?", ["%{$search}%"])
                       ->orWhere('t.id', 'like', "%{$search}%")
+                      ->orWhereRaw("CONCAT('T', LPAD(t.id, 5, '0')) LIKE ?", ["%{$search}%"])
                       ->orWhere('tst.title', 'like', "%{$search}%")
+                      ->orWhere('cust.company', 'like', "%{$search}%")
+                      ->orWhere('p.project_id', 'like', "%{$search}%")
                       ->orWhere('p.title', 'like', "%{$search}%")
-                      ->orWhere('ts.title', 'like', "%{$search}%");
+                      ->orWhereRaw("CONCAT(COALESCE(p.project_id, ''), ' - ', COALESCE(p.title, '')) LIKE ?", ["%{$search}%"])
+                      ->orWhere('ts.title', 'like', "%{$search}%")
+                      ->orWhereRaw("CONCAT('#', LPAD(ts.id, 5, '0')) LIKE ?", ["%{$search}%"]);
                 });
             }
             

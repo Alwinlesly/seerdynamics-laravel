@@ -371,8 +371,8 @@
             loadTimesheets();
         });
 
-        // Search input with debounce
-        $('#searchInput').on('keyup', function() {
+        // Search input with debounce (typing + clear button)
+        $('#searchInput').on('input search change', function() {
             clearTimeout(searchTimer);
             searchTimer = setTimeout(function() {
                 currentPage = 1;
@@ -424,7 +424,7 @@
                 limit: itemsPerPage,
                 sort: 'id',
                 order: 'DESC',
-                search: $('#searchInput').val(),
+                search: ($('#searchInput').val() || '').trim(),
                 user_id: $('#consultantFilter').val(),
                 customer: $('#customerFilter').val(),
                 project: $('#projectFilter').val(),
@@ -557,10 +557,6 @@
     function updateProjectList() {
         const customerId = $('#customerFilter').val();
         const projectType = $('#projectTypeFilter').val();
-
-        if (!customerId && !projectType) {
-            return;
-        }
 
         $.ajax({
             url: '{{ route("timesheets.release.projects") }}',
