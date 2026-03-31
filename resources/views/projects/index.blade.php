@@ -39,25 +39,25 @@
                 </div>
 
                 <div class="sel-wrapper">
-                    <select class="form-select" id="projectFilter">
+                    <select class="form-select searchable-filter" id="projectFilter">
                         <option value="">Project</option>
                         @foreach($projects as $project)
                         <option value="{{ $project->id }}">{{ $project->project_id }} - {{ $project->title }}</option>
                         @endforeach
                     </select>
-                    <select class="form-select" id="customerFilter">
+                    <select class="form-select searchable-filter" id="customerFilter">
                         <option value="">Customer</option>
                         @foreach($customers as $customer)
                         <option value="{{ $customer->id }}">{{ $customer->company ?? $customer->first_name }}</option>
                         @endforeach
                     </select>
-                    <select class="form-select" id="statusFilter">
+                    <select class="form-select searchable-filter" id="statusFilter">
                         <option value="">Status</option>
                         @foreach($project_statuses as $status)
                         <option value="{{ $status->id }}">{{ $status->title }}</option>
                         @endforeach
                     </select>
-                    <select class="form-select" id="sortFilter">
+                    <select class="form-select searchable-filter" id="sortFilter">
                         <option value="id">Sort</option>
                         <option value="created">Latest</option>
                         <option value="title">Title</option>
@@ -128,6 +128,34 @@
 
 @endsection
 
+@push('styles')
+<style>
+.sel-wrapper .select2-container {
+    min-width: 180px;
+}
+
+.sel-wrapper .select2-container .select2-selection--single {
+    height: 42px;
+    border: 1px solid #e2e5ec;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.sel-wrapper .select2-container .select2-selection__rendered {
+    color: #6c757d;
+    line-height: 40px;
+    padding-left: 12px;
+    padding-right: 28px;
+}
+
+.sel-wrapper .select2-container .select2-selection__arrow {
+    height: 40px;
+    right: 8px;
+}
+</style>
+@endpush
+
 @push('scripts')
 <script>
 let currentPage = 1;
@@ -135,6 +163,12 @@ const limit = 20;
 const canManageProjects = @json($canManageProjects);
 
 $(document).ready(function() {
+    // Match existing project behavior: searchable filter dropdowns.
+    $('.searchable-filter').select2({
+        width: 'resolve',
+        minimumResultsForSearch: 0
+    });
+
     loadProjects();
     
     // Search (use input/search so clearing field also reloads full list)
