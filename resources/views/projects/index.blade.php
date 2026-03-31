@@ -143,8 +143,8 @@ const canManageProjects = @json($canManageProjects);
 $(document).ready(function() {
     loadProjects();
     
-    // Search
-    $('#searchInput').on('keyup', debounce(function() {
+    // Search (use input/search so clearing field also reloads full list)
+    $('#searchInput').on('input search', debounce(function() {
         currentPage = 1;
         loadProjects();
     }, 500));

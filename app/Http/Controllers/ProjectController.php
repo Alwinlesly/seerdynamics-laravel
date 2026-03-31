@@ -71,12 +71,22 @@ class ProjectController extends Controller
                 });
             }
             
-            // Search filter
-            if ($request->search) {
-                $query->where(function($q) use ($request) {
-                    $q->where('title', 'like', '%'.$request->search.'%')
-                      ->orWhere('project_id', 'like', '%'.$request->search.'%')
-                      ->orWhere('description', 'like', '%'.$request->search.'%');
+            // Search filter (phrase-based across project + customer fields)
+            $search = trim((string) $request->input('search', ''));
+            if ($search !== '') {
+                $query->where(function($q) use ($search) {
+                    $q->where('title', 'like', "%{$search}%")
+                      ->orWhere('project_id', 'like', "%{$search}%")
+                      ->orWhereRaw("CONCAT(COALESCE(project_id, ''), ' ', COALESCE(title, '')) LIKE ?", ["%{$search}%"])
+                      ->orWhereRaw("CONCAT(COALESCE(title, ''), ' ', COALESCE(project_id, '')) LIKE ?", ["%{$search}%"])
+                      ->orWhereHas('customer', function ($customerQ) use ($search) {
+                          // Match by the same text shown in Customer column:
+                          // company (preferred) OR full name when company is empty
+                          $customerQ->whereRaw(
+                              "COALESCE(NULLIF(TRIM(company), ''), TRIM(CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')))) LIKE ?",
+                              ["%{$search}%"]
+                          );
+                      });
                 });
             }
             
