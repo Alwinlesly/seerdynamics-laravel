@@ -188,9 +188,10 @@ $(document).ready(function() {
         
         customers.forEach(function(customer) {
             const customerCode = customer.customer_code || 'N/A';
-            const avatarHtml = customer.profile_picture 
-                ? `<img src="${customer.profile_picture}" alt="${customer.name}" class="rounded-circle profile-img">`
-                : `<div class="avatar-circle avatar-gradient">${customerCode}</div>`;
+            const avatarText = (customerCode || 'NA').toString().trim().substring(0, 2).toUpperCase();
+            const avatarHtml = customer.profile_picture
+                ? `<img src="${customer.profile_picture}" alt="" class="rounded-circle profile-img" onerror="this.outerHTML='<div class=&quot;avatar-circle avatar-gradient&quot;>${avatarText}</div>';">`
+                : `<div class="avatar-circle avatar-gradient">${avatarText}</div>`;
             
             const statusClass = customer.status === 'Active' ? 'status-active' : 'status-incative';
             
@@ -308,6 +309,8 @@ $(document).ready(function() {
     font-weight: bold;
     color: white;
     font-size: 14px;
+    flex-shrink: 0;
+    text-transform: uppercase;
 }
 
 .avatar-gradient {
@@ -317,6 +320,27 @@ $(document).ready(function() {
 .profile-img {
     width: 40px;
     height: 40px;
+    object-fit: cover;
+    display: block;
+    flex-shrink: 0;
+    border: 1px solid #ececf3;
+    background: #f6f7fb;
+}
+
+#customersTableBody td {
+    vertical-align: middle;
+}
+
+.con_name {
+    min-width: 220px;
+}
+
+.con_name .fw-medium {
+    display: inline-block;
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 </style>
 @endpush
