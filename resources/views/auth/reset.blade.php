@@ -4,7 +4,11 @@
   <meta charset="UTF-8" />
   <title>{{ $page_title }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="shortcut icon" href="{{ asset('assets/uploads1/logos/' . favicon()) }}">
+  <link rel="icon" type="image/x-icon" href="{{ asset('assets/uploads1/logos/favicon.ico') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/uploads1/logos/favicon-32x32.png') }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/uploads1/logos/favicon-16x16.png') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/uploads1/logos/apple-touch-icon.png') }}">
+  <link rel="manifest" href="{{ asset('assets/uploads1/logos/site.webmanifest') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/login/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/css/login/style.css') }}">
 </head>

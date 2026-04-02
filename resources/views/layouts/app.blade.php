@@ -6,7 +6,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $page_title ?? 'Seer Dynamics' }}</title>
     
-    <link rel="shortcut icon" href="{{ asset('assets/uploads1/logos/' . favicon()) }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset('assets/uploads1/logos/favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/uploads1/logos/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('assets/uploads1/logos/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('assets/uploads1/logos/apple-touch-icon.png') }}">
+    <link rel="manifest" href="{{ asset('assets/uploads1/logos/site.webmanifest') }}">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
