@@ -38,21 +38,20 @@
                 <div class="p-4 pt-0">
                     <div class="table-responsive table-x table-consultant">
                         <div class="table-responsive">
-                            <table class="table table-hover mb-0">
+                            <table class="table table-hover mb-0" id="customerUsersTable">
                                 <thead class="table-light">
                                     <tr>
                                         <th scope="col" class="text-muted fw-medium">Customer</th>
                                         <th scope="col" class="text-muted fw-medium">Email</th>
                                         <th scope="col" class="text-muted fw-medium">Mobile</th>
                                         <th scope="col" class="text-muted fw-medium">Company</th>
-                                        <th scope="col" class="text-muted fw-medium">Project</th>
                                         <th scope="col" class="text-muted fw-medium">Status</th>
                                         <th scope="col" class="text-muted fw-medium">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody id="customerUsersTableBody">
                                     <tr>
-                                        <td colspan="7" class="text-center">
+                                        <td colspan="6" class="text-center">
                                             <div class="spinner-border text-primary" role="status">
                                                 <span class="visually-hidden">Loading...</span>
                                             </div>
@@ -183,7 +182,7 @@ $(document).ready(function() {
         if (customerUsers.length === 0) {
             tbody.append(`
                 <tr>
-                    <td colspan="7" class="text-center py-4">No customer users found</td>
+                    <td colspan="6" class="text-center py-4">No customer users found</td>
                 </tr>
             `);
             return;
@@ -225,7 +224,6 @@ $(document).ready(function() {
                     <td>${cuser.email}</td>
                     <td>${cuser.mobile}</td>
                     <td>${cuser.company}</td>
-                    <td>${cuser.project_count}</td>
                     <td><span class="${statusClass}">${cuser.status}</span></td>
                     <td>
                         <div class="d-flex gap-2 align-items-center justify-content-center">
@@ -249,7 +247,7 @@ $(document).ready(function() {
     function showError(message) {
         $('#customerUsersTableBody').html(`
             <tr>
-                <td colspan="7" class="text-center text-danger py-4">${message}</td>
+                <td colspan="6" class="text-center text-danger py-4">${message}</td>
             </tr>
         `);
     }
@@ -340,6 +338,40 @@ $(document).ready(function() {
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+#customerUsersTable {
+    table-layout: fixed;
+    width: 100%;
+}
+
+#customerUsersTable th:nth-child(1),
+#customerUsersTable td:nth-child(1),
+#customerUsersTable th:nth-child(2),
+#customerUsersTable td:nth-child(2) {
+    width: 23%;
+}
+
+#customerUsersTable th:nth-child(3),
+#customerUsersTable td:nth-child(3) {
+    width: 14%;
+}
+
+#customerUsersTable th:nth-child(4),
+#customerUsersTable td:nth-child(4) {
+    width: 23%;
+}
+
+#customerUsersTable th:nth-child(5),
+#customerUsersTable td:nth-child(5) {
+    width: 10%;
+}
+
+#customerUsersTable th:nth-child(6),
+#customerUsersTable td:nth-child(6) {
+    width: 7%;
+    text-align: center;
+    white-space: nowrap;
 }
 </style>
 @endpush
