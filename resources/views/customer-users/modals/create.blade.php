@@ -14,11 +14,11 @@
             @csrf
             
             @if(!auth()->user()->inGroup(3))
-            <!-- Row 1: Project Client (Full Width) -->
+            <!-- Row 1: Customer (Full Width) -->
             <div class="row mb-3">
                 <div class="col-md-12">
                     <div>
-                        <label for="cuserCustomer" class="form-label">Project Customer <span class="req">*</span></label>
+                        <label for="cuserCustomer" class="form-label">Customer <span class="req">*</span></label>
                         <select class="form-select" id="cuserCustomer" name="cuser_customer" required>
                             <option value="" disabled selected hidden>Select customer</option>
                             @foreach($customers as $customer)
