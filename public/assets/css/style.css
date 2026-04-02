@@ -677,11 +677,116 @@
    background-color: #e2e2e2;
  }
 
- .table-x {
-   border: 1px solid #DDDDDD;
-   border-collapse: collapse;
-   border-radius: 10px;
- }
+.table-x {
+  border: 1px solid #DDDDDD;
+  border-collapse: collapse;
+  border-radius: 10px;
+}
+
+/* Uniform listing table alignment across modules */
+.table-x .table,
+.table-consultant .table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.table-x .table th,
+.table-x .table td,
+.table-consultant .table th,
+.table-consultant .table td {
+  vertical-align: middle;
+  padding: 12px 10px;
+}
+
+.table-x .table td,
+.table-consultant .table td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Generic listing tuning */
+.my-table th:first-child,
+.my-table td:first-child {
+  width: 90px;
+}
+
+.table-consultant .table th:first-child,
+.table-consultant .table td:first-child {
+  width: 26%;
+}
+
+.table-consultant .table th:last-child,
+.table-consultant .table td:last-child {
+  width: 90px;
+  text-align: center;
+}
+
+/* Projects listing column map */
+.my-table-project {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.my-table-project th:nth-child(1),
+.my-table-project td:nth-child(1) {
+  width: 19%;
+}
+
+.my-table-project th:nth-child(2),
+.my-table-project td:nth-child(2) {
+  width: 19%;
+}
+
+.my-table-project th:nth-child(3),
+.my-table-project td:nth-child(3) {
+  width: 10%;
+  text-align: center;
+}
+
+.my-table-project td:nth-child(3) {
+  white-space: nowrap;
+}
+
+.my-table-project th:nth-child(4),
+.my-table-project td:nth-child(4),
+.my-table-project th:nth-child(5),
+.my-table-project td:nth-child(5) {
+  width: 10%;
+}
+
+.my-table-project td:nth-child(4),
+.my-table-project td:nth-child(5) {
+  white-space: nowrap;
+}
+
+.my-table-project th:nth-child(6),
+.my-table-project td:nth-child(6) {
+  width: 12%;
+  text-align: center;
+}
+
+.my-table-project td:nth-child(6) {
+  white-space: nowrap;
+}
+
+.my-table-project th:nth-child(7),
+.my-table-project td:nth-child(7) {
+  width: 12%;
+}
+
+.my-table-project td:nth-child(7) {
+  white-space: nowrap;
+}
+
+.my-table-project th:nth-child(8),
+.my-table-project td:nth-child(8) {
+  width: 8%;
+  text-align: center;
+}
+
+.my-table-project td:nth-child(8) {
+  white-space: nowrap;
+}
 
  .footer {
    background: #F5F5F5 0% 0% no-repeat padding-box;
