@@ -48,11 +48,22 @@
                         <option value="">Customer</option>
                         @if(isset($customers))
                             @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}">{{ $customer->company ?? $customer->first_name }}</option>
+                                @php
+                                    $customerCompany = trim((string) ($customer->company ?? ''));
+                                    $customerFullName = trim((string) (($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')));
+                                @endphp
+                                <option value="{{ $customer->id }}">{{ $customerCompany !== '' ? $customerCompany : $customerFullName }}</option>
                             @endforeach
                         @endif
                     </select>
                     @endif
+
+                    <select class="form-select searchable-filter" id="projectTypeFilter">
+                        <option value="">Project type</option>
+                        @foreach(($project_types ?? []) as $ptype)
+                            <option value="{{ $ptype->id }}">{{ $ptype->title }}</option>
+                        @endforeach
+                    </select>
 
                     <select class="form-select searchable-filter" id="projectFilter">
                         <option value="">Project</option>
@@ -379,6 +390,11 @@
             loadTasks();
         });
 
+        $('#projectTypeFilter').on('change', function() {
+            currentPage = 1;
+            loadTasks();
+        });
+
         // Summary chip click -> apply status filter and reload
         $(document).on('click', '.status-summary-chip', function() {
             const statusTitle = String($(this).data('status') || '');
@@ -404,6 +420,7 @@
         $('#downloadBtn').on('click', function() {
             const search = $('#searchInput').val();
             const customer = $('#customerFilter').val();
+            const projectType = $('#projectTypeFilter').val();
             const project = $('#projectFilter').val();
             const status = $('#statusFilter').val();
             const priority = $('#priorityFilter').val();
@@ -413,6 +430,7 @@
             let params = new URLSearchParams();
             if (search) params.append('search', search);
             if (customer) params.append('customer', customer);
+            if (projectType) params.append('project_type', projectType);
             if (project) params.append('project', project);
             if (status) params.append('status', status);
             if (priority) params.append('priority', priority);
@@ -426,6 +444,7 @@
     function loadTasks() {
         const search = $('#searchInput').val();
         const customer = $('#customerFilter').val();
+        const projectType = $('#projectTypeFilter').val();
         const project = $('#projectFilter').val();
         const status = $('#statusFilter').val();
         const priority = $('#priorityFilter').val();
@@ -441,6 +460,7 @@
             data: {
                 search: search,
                 customer: customer,
+                project_type: projectType,
                 project: project,
                 status: status,
                 priority: priority,

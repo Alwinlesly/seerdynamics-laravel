@@ -41,6 +41,7 @@ class TaskController extends Controller
         
         // Get issue types for filter
         $data['issue_types'] = IssueType::all();
+        $data['project_types'] = DB::table('project_type')->orderBy('id')->get();
         
         // Get projects for filter (based on user role)
         if ($user->inGroup(3) || $user->inGroup(4)) { // Customer admin/user - match CI get_projects() logic
@@ -82,12 +83,14 @@ class TaskController extends Controller
                 ->whereHas('groups', function($q) {
                     $q->where('groups.id', 3); // Customer group ID
                 })
+                ->where('is_company', 1)
                 ->get();
         } elseif ($user->inGroup(3)) {
             // Customer admin: only own/parent customer accounts
             $clientIds = $user->getCustomerClientIds();
             $data['customers'] = User::where('active', 1)
                 ->whereIn('id', $clientIds)
+                ->where('is_company', 1)
                 ->get();
         } else {
             $data['customers'] = collect();
@@ -195,6 +198,14 @@ class TaskController extends Controller
                 $query->where('project_id', $request->project);
             }
 
+            // Project type filter (legacy: projecttype / ptype)
+            $projectType = $request->input('project_type');
+            if (!empty($projectType)) {
+                $query->whereHas('project', function($q) use ($projectType) {
+                    $q->where('ptype', (int) $projectType);
+                });
+            }
+
             // Priority filter
             if ($request->priority) {
                 $query->where('priority', $request->priority);
@@ -294,7 +305,11 @@ class TaskController extends Controller
                     $project = \App\Models\Project::find($task->project_id);
                     if ($project && $project->client_id) {
                         $customer = \App\Models\User::find($project->client_id);
-                        $customerName = $customer ? ($customer->company ?? $customer->first_name) : '';
+                        if ($customer) {
+                            $company = trim((string) ($customer->company ?? ''));
+                            $fullName = trim((string) (($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')));
+                            $customerName = $company !== '' ? $company : $fullName;
+                        }
                     }
                 }
                 
