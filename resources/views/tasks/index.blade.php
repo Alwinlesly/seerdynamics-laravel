@@ -296,6 +296,27 @@
     flex: 0 0 auto;
 }
 
+/* Keep ticket status chips readable in listing table */
+.my-table th:nth-child(9),
+.my-table td:nth-child(9) {
+    width: 170px;
+}
+
+#tasksTableBody .status {
+    display: inline-block;
+    max-width: 100%;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
+.my-table th:nth-child(10),
+.my-table td:nth-child(10) {
+    width: 90px;
+    white-space: nowrap;
+    text-align: center;
+}
+
 @media (max-width: 991.98px) {
     .right-section .sel-wrapper .select2-container,
     .right-section .sel-wrapper > .searchable-filter {
