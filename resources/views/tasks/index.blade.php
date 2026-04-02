@@ -322,10 +322,10 @@
 
 @push('scripts')
 <script>
-    const canEditTaskAction = @json(auth()->user()->inGroup(1) || permissions('task_edit'));
     const canDeleteTaskAction = @json(auth()->user()->inGroup(1) || permissions('task_delete'));
-    const canCloseTaskAction = @json(auth()->user()->inGroup(3) || auth()->user()->inGroup(4));
     const isConsultantUser = @json(auth()->user()->inGroup(2));
+    const canEditTaskAction = @json((auth()->user()->inGroup(1) || permissions('task_edit')) && !auth()->user()->inGroup(2) && !auth()->user()->inGroup(3) && !auth()->user()->inGroup(4));
+    const canCloseTaskAction = @json(auth()->user()->inGroup(3) || auth()->user()->inGroup(4));
     let currentPage = 1;
     let totalRecords = 0;
     const limit = 20;
@@ -518,7 +518,8 @@
         } else {
             tasks.forEach(task => {
                 const statusClass = task.status.toLowerCase().replace(/\s+/g, '-');
-                const canShowClose = canCloseTaskAction && String(task.status || '').toLowerCase() === 'completed';
+                const normalizedTaskStatus = String(task.status || '').toLowerCase().replace(/[\s_-]+/g, '');
+                const canShowClose = canCloseTaskAction && (normalizedTaskStatus === 'completed' || normalizedTaskStatus === 'onhold');
                 const priorityClass = task.priority_class;
                 const actionHtml = `
                     ${canEditTaskAction ? `
@@ -1049,14 +1050,29 @@
             originalEditStatusOptionsHtml = $status.html();
         }
 
-        const closedOption = $status.find('option').filter(function() {
-            return String($(this).text() || '').trim().toLowerCase() === 'closed';
-        }).first();
+        const allowedOptions = [];
+        $status.find('option').each(function() {
+            const label = String($(this).text() || '').trim();
+            const normalized = label.toLowerCase().replace(/[\s_-]+/g, '');
+            if (normalized === 'closed' || normalized === 'onhold') {
+                allowedOptions.push({
+                    value: String($(this).val() || ''),
+                    label: label
+                });
+            }
+        });
 
-        if (closedOption.length) {
-            const closedValue = closedOption.val();
-            $status.html(`<option value="${closedValue}">Closed</option>`);
-            $status.val(closedValue);
+        if (allowedOptions.length) {
+            let html = '';
+            allowedOptions.forEach(function(opt) {
+                html += `<option value="${opt.value}">${opt.label}</option>`;
+            });
+            $status.html(html);
+
+            const closedOpt = allowedOptions.find(function(opt) {
+                return opt.label.toLowerCase().replace(/[\s_-]+/g, '') === 'closed';
+            });
+            $status.val(closedOpt ? closedOpt.value : allowedOptions[0].value);
             $status.trigger('change.select2');
         }
     }

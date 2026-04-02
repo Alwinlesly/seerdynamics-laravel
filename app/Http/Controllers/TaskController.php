@@ -716,23 +716,99 @@ class TaskController extends Controller
     public function update(Request $request, $id)
     {
         $task = Task::findOrFail($id);
-        
-        if (!auth()->user()->inGroup(1) && !permissions('task_edit')) {
+
+        $user = auth()->user();
+        $isCustomerCloser = $user->inGroup(3) || $user->inGroup(4);
+        $isConsultant = $user->inGroup(2);
+        $canGeneralEdit = $user->inGroup(1) || permissions('task_edit');
+
+        // As per existing flow alignment: consultants should not edit ticket details.
+        if ($isConsultant) {
             return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
         }
-        
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'project_id' => 'required|exists:projects,id',
-            'issue_type_id' => 'nullable|exists:issue_types,issue_type_id',
-            'priority_id' => 'nullable|exists:priorities,id',
-        ]);
-        
+
+        // General edit is for admin/permitted internal users.
+        // Customer admin/user are allowed only close action via this endpoint.
+        if (!$canGeneralEdit && !$isCustomerCloser) {
+            return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+        }
+
         try {
+            $requestedStatusTitle = trim((string) $request->input('status', ''));
+            $requestedStatus = $requestedStatusTitle !== ''
+                ? TaskStatus::where('title', $requestedStatusTitle)->first()
+                : null;
+
+            // Customer admin/user: allow only "Completed -> Closed" flow.
+            if ($isCustomerCloser) {
+                if (!$this->canAccessTask($user, $task)) {
+                    return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+                }
+
+                $completedStatus = TaskStatus::where('title', 'Completed')->first();
+                $onHoldStatus = TaskStatus::where('title', 'On Hold')->first();
+                $closedStatus = TaskStatus::where('title', 'Closed')->first();
+
+                if (!$closedStatus) {
+                    return response()->json(['error' => true, 'message' => 'Closed status is not configured'], 422);
+                }
+
+                $requestedStatusId = $requestedStatus ? (int) $requestedStatus->id : 0;
+                $onHoldStatusId = $onHoldStatus ? (int) $onHoldStatus->id : 0;
+                $closedStatusId = (int) $closedStatus->id;
+
+                if (!in_array($requestedStatusId, array_filter([$closedStatusId, $onHoldStatusId]), true)) {
+                    return response()->json([
+                        'error' => true,
+                        'message' => 'Customer users can set status only to Closed or On Hold'
+                    ], 422);
+                }
+
+                $allowedStatuses = [];
+                if ($completedStatus) {
+                    $allowedStatuses[] = (int) $completedStatus->id;
+                }
+                if ($onHoldStatus) {
+                    $allowedStatuses[] = (int) $onHoldStatus->id;
+                }
+
+                if (empty($allowedStatuses) || !in_array((int) $task->status, $allowedStatuses, true)) {
+                    return response()->json([
+                        'error' => true,
+                        'message' => 'Only completed or on-hold tickets can be closed'
+                    ], 422);
+                }
+
+                $task->status = $requestedStatusId;
+                if ($requestedStatusId === $closedStatusId) {
+                    $task->closed_date = now();
+                }
+                $task->save();
+
+                try {
+                    if ($requestedStatusId === $closedStatusId) {
+                        EmailService::sendTicketEmail($task->id, 'TKTCLOSE', []);
+                    }
+                } catch (\Exception $emailEx) {
+                    \Log::error('Email notification failed for customer close: ' . $emailEx->getMessage());
+                }
+
+                return response()->json([
+                    'error' => false,
+                    'message' => $requestedStatusId === $closedStatusId ? 'Ticket closed successfully' : 'Ticket moved to On Hold successfully'
+                ]);
+            }
+
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'project_id' => 'required|exists:projects,id',
+                'issue_type_id' => 'nullable|exists:issue_types,issue_type_id',
+                'priority_id' => 'nullable|exists:priorities,id',
+            ]);
+
             // Get status ID from title
-            $status = TaskStatus::where('title', $request->status)->first();
-            $validated['status'] = $status ? $status->id : $task->status;
+            $validated['status'] = $requestedStatus ? $requestedStatus->id : $task->status;
             
             // Update priority
             $validated['priority'] = $request->priority_id ?? $task->priority;
@@ -1398,16 +1474,25 @@ class TaskController extends Controller
             }
 
             $completedStatus = TaskStatus::where('title', 'Completed')->first();
+            $onHoldStatus = TaskStatus::where('title', 'On Hold')->first();
             $closedStatus = TaskStatus::where('title', 'Closed')->first();
 
             if (!$closedStatus) {
                 return response()->json(['error' => true, 'message' => 'Closed status is not configured'], 422);
             }
 
-            if ($completedStatus && (int) $task->status !== (int) $completedStatus->id) {
+            $allowedStatuses = [];
+            if ($completedStatus) {
+                $allowedStatuses[] = (int) $completedStatus->id;
+            }
+            if ($onHoldStatus) {
+                $allowedStatuses[] = (int) $onHoldStatus->id;
+            }
+
+            if (empty($allowedStatuses) || !in_array((int) $task->status, $allowedStatuses, true)) {
                 return response()->json([
                     'error' => true,
-                    'message' => 'Only completed tickets can be closed'
+                    'message' => 'Only completed or on-hold tickets can be closed'
                 ], 422);
             }
 
