@@ -252,9 +252,9 @@
 }
 
 .sel-wrapper .select2-container {
-    min-width: 170px;
-    width: 170px !important;
-    flex: 0 0 170px;
+    min-width: 0;
+    width: auto !important;
+    flex: 1 1 170px;
 }
 
 .sel-wrapper .select2-container .select2-selection--single {
@@ -285,8 +285,22 @@
 }
 
 .right-section .sel-wrapper {
+    display: flex;
+    flex-wrap: wrap;
     justify-content: flex-start;
     gap: 12px;
+    width: 100%;
+}
+
+.right-section .sel-wrapper .btn-download {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 991.98px) {
+    .right-section .sel-wrapper .select2-container,
+    .right-section .sel-wrapper > .searchable-filter {
+        flex: 1 1 100%;
+    }
 }
 
 .select2-container--default .select2-results__option--highlighted[aria-selected] {
