@@ -68,7 +68,7 @@
                     <select class="form-select searchable-filter" id="projectFilter">
                         <option value="">Project</option>
                         @foreach($projects as $project)
-                            <option value="{{ $project->id }}">{{ $project->project_id }} - {{ $project->title }}</option>
+                            <option value="{{ $project->id }}" data-customer="{{ $project->client_id }}" data-ptype="{{ $project->ptype }}">{{ $project->project_id }} - {{ $project->title }}</option>
                         @endforeach
                     </select>
 
@@ -330,6 +330,8 @@
     let totalRecords = 0;
     const limit = 20;
     let selectedCommentAttachments = [];
+    let allProjectFilterOptions = [];
+    let allProjectTypeFilterOptions = [];
 
     function commentAttachmentKey(file) {
         return [file.name, file.size, file.lastModified].join('__');
@@ -383,12 +385,18 @@
             minimumResultsForSearch: 0
         });
 
+        // Keep original option sets to support dependent filtering.
+        allProjectFilterOptions = $('#projectFilter option').clone();
+        allProjectTypeFilterOptions = $('#projectTypeFilter option').clone();
+
         // Check if project filter is passed in URL
         const urlParams = new URLSearchParams(window.location.search);
         const projectId = urlParams.get('project');
         if (projectId) {
             $('#projectFilter').val(projectId);
         }
+
+        syncTaskDependentFilters();
         
         loadTasks();
 
@@ -399,12 +407,19 @@
         });
 
         // Filters
-        $('#customerFilter, #projectFilter, #statusFilter, #priorityFilter, #sortFilter').on('change', function() {
+        $('#customerFilter').on('change', function() {
+            syncTaskDependentFilters();
+            currentPage = 1;
+            loadTasks();
+        });
+
+        $('#projectFilter, #statusFilter, #priorityFilter, #sortFilter').on('change', function() {
             currentPage = 1;
             loadTasks();
         });
 
         $('#projectTypeFilter').on('change', function() {
+            syncTaskDependentFilters();
             currentPage = 1;
             loadTasks();
         });
@@ -662,6 +677,67 @@
         syncCommentAttachmentInput();
         renderCommentAttachmentPreview();
     });
+
+    function syncTaskDependentFilters() {
+        const selectedCustomer = String($('#customerFilter').val() || '');
+        const selectedProjectType = String($('#projectTypeFilter').val() || '');
+
+        // Filter project type dropdown by selected customer.
+        // This mirrors existing app behavior: customer selection narrows downstream filters.
+        const visibleProjectTypeIds = {};
+        allProjectFilterOptions.each(function() {
+            const optionValue = String($(this).attr('value') || '');
+            if (optionValue === '') return;
+            const optionCustomer = String($(this).data('customer') || '');
+            if (selectedCustomer !== '' && optionCustomer !== selectedCustomer) return;
+            const typeId = String($(this).data('ptype') || '');
+            if (typeId !== '') {
+                visibleProjectTypeIds[typeId] = true;
+            }
+        });
+
+        const currentProjectType = String($('#projectTypeFilter').val() || '');
+        $('#projectTypeFilter').empty();
+        allProjectTypeFilterOptions.each(function() {
+            const optionValue = String($(this).attr('value') || '');
+            if (optionValue === '' || selectedCustomer === '' || visibleProjectTypeIds[optionValue]) {
+                $('#projectTypeFilter').append($(this).clone());
+            }
+        });
+
+        if ($('#projectTypeFilter option[value="' + currentProjectType + '"]').length > 0) {
+            $('#projectTypeFilter').val(currentProjectType);
+        } else {
+            $('#projectTypeFilter').val('');
+        }
+        $('#projectTypeFilter').trigger('change.select2');
+
+        // Filter project dropdown by selected customer + selected project type.
+        const activeProjectType = String($('#projectTypeFilter').val() || '');
+        const currentProject = String($('#projectFilter').val() || '');
+        $('#projectFilter').empty();
+        allProjectFilterOptions.each(function() {
+            const optionValue = String($(this).attr('value') || '');
+            if (optionValue === '') {
+                $('#projectFilter').append($(this).clone());
+                return;
+            }
+            const optionCustomer = String($(this).data('customer') || '');
+            const optionType = String($(this).data('ptype') || '');
+            const customerMatch = selectedCustomer === '' || optionCustomer === selectedCustomer;
+            const typeMatch = activeProjectType === '' || optionType === activeProjectType;
+            if (customerMatch && typeMatch) {
+                $('#projectFilter').append($(this).clone());
+            }
+        });
+
+        if ($('#projectFilter option[value="' + currentProject + '"]').length > 0) {
+            $('#projectFilter').val(currentProject);
+        } else {
+            $('#projectFilter').val('');
+        }
+        $('#projectFilter').trigger('change.select2');
+    }
 
     $(document).on('click', '.remove-comment-attachment', function() {
         const index = Number($(this).data('index'));
