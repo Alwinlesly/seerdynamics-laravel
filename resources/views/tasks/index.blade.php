@@ -299,7 +299,9 @@
 /* Keep ticket status chips readable in listing table */
 .my-table th:nth-child(9),
 .my-table td:nth-child(9) {
-    width: 170px;
+    width: 140px;
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 #tasksTableBody .status {
@@ -312,9 +314,38 @@
 
 .my-table th:nth-child(10),
 .my-table td:nth-child(10) {
-    width: 90px;
+    width: 120px;
     white-space: nowrap;
     text-align: center;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+#tasksTableBody .action-group {
+    gap: 8px !important;
+}
+
+#tasksTableBody .close-ticket-popup {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border: 1px solid #503897;
+    border-radius: 8px;
+    background: #503897;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#tasksTableBody .close-ticket-popup:hover {
+    background: #462f84;
+    border-color: #462f84;
+    color: #fff;
 }
 
 @media (max-width: 991.98px) {
@@ -563,11 +594,8 @@
                         </span>
                     ` : ''}
                     ${canShowClose ? `
-                        <span class="close-ticket-popup" data-id="${task.id}" style="cursor: pointer;" title="Close Ticket">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7d6bb2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="9"></circle>
-                                <path d="M8 8l8 8M16 8l-8 8"></path>
-                            </svg>
+                        <span class="close-ticket-popup" data-id="${task.id}" title="Close Ticket">
+                            <span>Close ticket</span>
                         </span>
                     ` : ''}
                 `;
@@ -584,7 +612,7 @@
                         <td>${task.created_date}</td>
                         <td><span class="status ${statusClass}">${task.status}</span></td>
                         <td>
-                            <div class="d-flex gap-2 align-items-center justify-content-center">
+                            <div class="d-flex align-items-center justify-content-center action-group">
                                 ${actionHtml}
                             </div>
                         </td>
