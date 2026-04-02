@@ -331,15 +331,15 @@ $(document).ready(function() {
 }
 
 .con_name {
-    min-width: 220px;
+    min-width: 0;
 }
 
 .con_name .fw-medium {
     display: inline-block;
-    max-width: 220px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 </style>
 @endpush
