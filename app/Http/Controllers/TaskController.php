@@ -530,6 +530,21 @@ class TaskController extends Controller
                     return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
                 }
             }
+
+            // Full edit is not available for consultants/customer roles in the new flow.
+            // Customer admin/user may still access this endpoint only for close-mode statuses.
+            if ($user->inGroup(2)) {
+                return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+            }
+            if ($user->inGroup(3) || $user->inGroup(4)) {
+                $statusTitle = strtolower(preg_replace('/[\s_-]+/', '', (string) ($task->taskStatus->title ?? '')));
+                if (!in_array($statusTitle, ['completed', 'onhold', 'closed'], true)) {
+                    return response()->json([
+                        'error' => true,
+                        'message' => 'Full ticket edit is not available for customer users'
+                    ], 403);
+                }
+            }
             
             $taskData = [
                 'id' => $task->id,
