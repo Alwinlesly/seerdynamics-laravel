@@ -100,7 +100,7 @@
                     @endif
 
                     @if(auth()->user()->inGroup(1) || auth()->user()->inGroup(3) || auth()->user()->inGroup(4))
-                    <div class="mb-3 edit-full-only">
+                    <div class="mb-3 edit-full-only edit-close-assign-users">
                         <label for="edit_cusers" class="form-label">Assign Users</label>
                         <select name="users[]" id="edit_cusers" class="form-control select2" multiple>      
                             @foreach($other_cusers as $cuser)
@@ -172,6 +172,9 @@
 
 #editTaskModal.close-mode .edit-full-only {
     display: none !important;
+}
+#editTaskModal.close-mode .edit-close-assign-users {
+    display: block !important;
 }
 #editTaskModal.close-mode .edit-status-only {
     flex: 0 0 100%;

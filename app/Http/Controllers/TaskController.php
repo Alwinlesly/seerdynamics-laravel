@@ -859,6 +859,16 @@ class TaskController extends Controller
                 }
                 $task->save();
 
+                // Existing project behavior: in close/update popup customer admin can assign users.
+                if ($request->has('users')) {
+                    $users = $request->input('users', []);
+                    if (is_array($users)) {
+                        $task->users()->sync($users);
+                    } else {
+                        $task->users()->sync([]);
+                    }
+                }
+
                 try {
                     if ($requestedStatusId === $closedStatusId) {
                         EmailService::sendTicketEmail($task->id, 'TKTCLOSE', []);
