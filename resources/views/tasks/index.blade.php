@@ -376,7 +376,7 @@
 <script>
     const canDeleteTaskAction = @json(auth()->user()->inGroup(1) || permissions('task_delete'));
     const isConsultantUser = @json(auth()->user()->inGroup(2));
-    const canEditTaskAction = @json((auth()->user()->inGroup(1) || permissions('task_edit')) && !auth()->user()->inGroup(2) && !auth()->user()->inGroup(3) && !auth()->user()->inGroup(4));
+    const canEditTaskAction = @json((auth()->user()->inGroup(1) || permissions('task_edit')) && !auth()->user()->inGroup(3) && !auth()->user()->inGroup(4));
     const canCloseTaskAction = @json(auth()->user()->inGroup(3) || auth()->user()->inGroup(4));
     let currentPage = 1;
     let totalRecords = 0;
