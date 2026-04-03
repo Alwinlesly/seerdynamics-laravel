@@ -53,7 +53,7 @@
                             <div>
                                 <label for="editRole" class="form-label">Role <span class="req">*</span></label>
                                 <select class="form-select" id="editRole" name="groups" required>
-                                    <option value="3">Customer</option>
+                                    <option value="3">Customer Admin</option>
                                     <option value="4">Customer User</option>
                                 </select>
                             </div>
