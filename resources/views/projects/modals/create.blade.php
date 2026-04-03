@@ -34,19 +34,19 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-3">
                             <label class="form-label">Starting date <span class="req">*</span></label>
-                            <input type="date" class="form-control" name="starting_date" required>
+                            <input type="date" class="form-control" name="starting_date" value="{{ now()->toDateString() }}" required>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Ending date <span class="req">*</span></label>
-                            <input type="date" class="form-control" name="ending_date" required>
+                            <input type="date" class="form-control" name="ending_date" value="{{ now()->toDateString() }}" required>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Actual start date</label>
-                            <input type="date" class="form-control" name="actual_starting_date">
+                            <input type="date" class="form-control" name="actual_starting_date" value="{{ now()->toDateString() }}">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Actual end date</label>
-                            <input type="date" class="form-control" name="actual_ending_date">
+                            <input type="date" class="form-control" name="actual_ending_date" value="{{ now()->toDateString() }}">
                         </div>
                     </div>
 
@@ -150,6 +150,19 @@
 $(document).on('change', '#createContractFile', function() {
     const fileName = this.files && this.files[0] ? this.files[0].name : '';
     $('#contractFileName').val(fileName);
+});
+
+// Ensure date fields default to today whenever modal opens
+$('#createProjectModal').on('show.bs.modal', function() {
+    const today = new Date().toISOString().slice(0, 10);
+    const $form = $('#createProjectForm');
+
+    ['starting_date', 'ending_date', 'actual_starting_date', 'actual_ending_date'].forEach(function(name) {
+        const $input = $form.find(`[name="${name}"]`);
+        if ($input.length && !$input.val()) {
+            $input.val(today);
+        }
+    });
 });
 
 // Create project form submission
