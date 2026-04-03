@@ -295,6 +295,12 @@
             supportStatementShowConsultant = $(this).is(':checked');
             renderTasks(supportStatementTasks);
         });
+
+        // Keep initial state unchecked by default (old behavior parity).
+        if ($('#toggleConsultant').length) {
+            $('#toggleConsultant').prop('checked', false);
+            supportStatementShowConsultant = false;
+        }
     });
 
     function updateProjectList() {
@@ -401,10 +407,7 @@
                 $('#reportContainer').show();
 
                 supportStatementTasks = response.tasks || [];
-                supportStatementShowConsultant = !!response.show_consultant;
-                if ($('#toggleConsultant').length) {
-                    $('#toggleConsultant').prop('checked', supportStatementShowConsultant);
-                }
+                supportStatementShowConsultant = $('#toggleConsultant').length ? $('#toggleConsultant').is(':checked') : false;
 
                 // Render tasks table with old behavior:
                 // - customer admin: consultant hidden and grouped month view
