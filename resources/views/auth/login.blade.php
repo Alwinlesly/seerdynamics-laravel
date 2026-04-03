@@ -184,6 +184,38 @@
 <script>
   var base_url = "{{ url('/') }}/";
 </script>
+<script>
+  (function () {
+    function hidePreloader() {
+      var preloader = document.getElementById('preloader');
+      if (!preloader || preloader.dataset.hidden === '1') {
+        return;
+      }
+
+      preloader.dataset.hidden = '1';
+      preloader.style.transition = 'opacity 0.35s ease';
+      preloader.style.opacity = '0';
+      preloader.style.pointerEvents = 'none';
+
+      setTimeout(function () {
+        if (preloader && preloader.parentNode) {
+          preloader.parentNode.removeChild(preloader);
+        }
+      }, 400);
+    }
+
+    // Hide as soon as DOM is ready.
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(hidePreloader, 500);
+    });
+
+    // Backup in case first-load assets delay DOM handlers.
+    window.addEventListener('load', hidePreloader);
+
+    // Hard fallback so preloader can never stay forever.
+    setTimeout(hidePreloader, 5000);
+  })();
+</script>
 
 <!-- jQuery CDN -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -195,11 +227,6 @@
 
 <script>
 $(document).ready(function() {
-  // Hide preloader
-  setTimeout(function() {
-    $('#preloader').fadeOut('slow');
-  }, 500);
-
   // CSRF Token Setup
   $.ajaxSetup({
     headers: {
