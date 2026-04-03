@@ -325,6 +325,17 @@
     overflow-wrap: normal;
 }
 
+#tasksTableBody .ticket-link {
+    color: #513998;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#tasksTableBody .ticket-link:hover,
+#tasksTableBody .ticket-link:focus {
+    color: #3e2d79;
+}
+
 #tasksTableBody td.estimate-approved {
     color: #2ab700 !important;
     font-weight: 600;
@@ -629,7 +640,7 @@
                 html += `
                     <tr>
                         <td>${task.ticket_id}</td>
-                        <td><a href="#" class="view-task" data-id="${task.id}" style="color: inherit; text-decoration: none; cursor: pointer;">${task.title}</a></td>
+                        <td><a href="#" class="view-task ticket-link" data-id="${task.id}">${task.title}</a></td>
                         <td>${task.project}</td>
                         <td>${task.customer}</td>
                         <td class="text-center ${task.is_estimate_approved ? 'estimate-approved' : ''}">${task.estimate}</td>
