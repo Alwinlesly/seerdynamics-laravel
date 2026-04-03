@@ -333,6 +333,18 @@ class TaskController extends Controller
                     $creator = \App\Models\User::find($task->created_by);
                     $creatorName = $creator ? ($creator->first_name . ' ' . $creator->last_name) : '';
                 }
+
+                $latestEstimate = TaskEstimate::where('task_id', $task->id)
+                    ->orderByDesc('id')
+                    ->first(['estimate_hours', 'estimate_status']);
+
+                $estimateValue = ($latestEstimate && $latestEstimate->estimate_hours !== null)
+                    ? $latestEstimate->estimate_hours
+                    : ($task->estimate ?? 0);
+
+                $isEstimateApproved = $latestEstimate
+                    ? ((int) $latestEstimate->estimate_status === 1)
+                    : false;
                 
                 $rows[] = [
                     'id' => $task->id,
@@ -340,12 +352,8 @@ class TaskController extends Controller
                     'title' => $task->title ?? '',
                     'project' => $projectName,
                     'customer' => $customerName,
-                    'estimate' => (function () use ($task) {
-                        $latestEstimateHours = TaskEstimate::where('task_id', $task->id)
-                            ->orderByDesc('id')
-                            ->value('estimate_hours');
-                        return $latestEstimateHours !== null ? $latestEstimateHours : ($task->estimate ?? 0);
-                    })(),
+                    'estimate' => $estimateValue,
+                    'is_estimate_approved' => $isEstimateApproved,
                     'priority' => $priorityName,
                     'priority_class' => strtolower(str_replace(' ', '-', $priorityName)),
                     'created_by' => $creatorName,

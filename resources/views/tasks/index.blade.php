@@ -325,6 +325,11 @@
     overflow-wrap: normal;
 }
 
+.estimate-approved {
+    color: #1e9b4f;
+    font-weight: 600;
+}
+
 .my-table th:nth-child(10),
 .my-table td:nth-child(10) {
     width: 120px;
@@ -627,7 +632,7 @@
                         <td><a href="#" class="view-task" data-id="${task.id}" style="color: inherit; text-decoration: none; cursor: pointer;">${task.title}</a></td>
                         <td>${task.project}</td>
                         <td>${task.customer}</td>
-                        <td class="text-center">${task.estimate}</td>
+                        <td class="text-center ${task.is_estimate_approved ? 'estimate-approved' : ''}">${task.estimate}</td>
                         <td><span class="${priorityClass}-pr">${task.priority}</span></td>
                         <td>${task.created_by}</td>
                         <td>${task.created_date}</td>
