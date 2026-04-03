@@ -325,8 +325,8 @@
     overflow-wrap: normal;
 }
 
-.estimate-approved {
-    color: #1e9b4f;
+#tasksTableBody td.estimate-approved {
+    color: #2ab700 !important;
     font-weight: 600;
 }
 
