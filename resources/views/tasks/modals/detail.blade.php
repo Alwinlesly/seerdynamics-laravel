@@ -6,7 +6,7 @@
       <!-- Modal Header -->
       <div class="modal-otd modal-header d-flex justify-content-between align-items-center gap-4">
         <h5 class="modal-title" id="taskDetailModalLabel">Ticket details</h5>
-        <button type="button" class="timer-btn" id="timerBtn" data-task-id="">
+        <button type="button" class="timer-btn" id="timerBtn" data-task-id="" style="display:none !important;">
           <span><img src="{{ asset('assets/img/clock.svg') }}" alt=""></span>
           <span id="timerBtnText">Start timer</span>
         </button>
