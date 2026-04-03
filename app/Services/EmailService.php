@@ -55,6 +55,8 @@ class EmailService
             $data['IsEtimate'] = ' - Not Estimated';
             $data['EstimatedDays'] = 'Not Estimated';
             $data['EstimatedHours'] = 'Not Estimated';
+            $data['ViewTicketURL'] = url('tasks') . (!empty($task_det->project_id) ? ('?project=' . $task_det->project_id) : '');
+            $data['AcceptURL'] = $data['ViewTicketURL'];
 
             // Get estimate details
             $estimate_det = DB::table('task_estimate')->where('task_id', $taskId)->first();

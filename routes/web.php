@@ -30,6 +30,13 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('projects')->group(function () {
         Route::get('/', [ProjectController::class, 'index'])->name('projects.index');
         Route::post('/list', [ProjectController::class, 'getProjects'])->name('projects.list');
+        // Legacy CI links used in notification emails.
+        Route::get('/tasks', function () {
+            return redirect()->route('tasks.index');
+        })->name('projects.tasks.legacy');
+        Route::get('/tasks/{project}', function ($project) {
+            return redirect()->route('tasks.index', ['project' => $project]);
+        })->whereNumber('project')->name('projects.tasks.legacy.project');
         Route::get('/timesheetapprovals', [TimesheetApprovalController::class, 'index'])->name('timesheets.approvals');
         Route::get('/timesheetapprovals/list', [TimesheetApprovalController::class, 'list'])->name('timesheets.approvals.list');
         Route::post('/timesheetapprovals/details', [TimesheetApprovalController::class, 'details'])->name('timesheets.approvals.details');

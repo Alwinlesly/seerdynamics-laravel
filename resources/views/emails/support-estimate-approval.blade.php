@@ -13,7 +13,7 @@
                 <td>
                     This is an automatic mail from Seer Dynamics Support Portal.
                     <br /> Kindly login to
-                    <a href="{{ url('projects/tasks') }}" style="font-family: calibri;font-size:16px;cursor:pointer;text-decoration:underline;">Seer Dynamics Support Portal</a> to reply
+                    <a href="{{ $ViewTicketURL ?? route('tasks.index') }}" style="font-family: calibri;font-size:16px;cursor:pointer;text-decoration:underline;">Seer Dynamics Support Portal</a> to reply
                 </td>
             </tr>
         </thead>
@@ -68,7 +68,7 @@
                             <tbody>
                                 <tr>
                                     <td style="text-align:center;padding-top: 15px !important;">
-                                        <a href="{{ url('projects/tasks') }}" style="padding: 5px 10px;background: #6600FF;color: #fff;text-decoration: none;">Accept</a>
+                                        <a href="{{ $AcceptURL ?? $ViewTicketURL ?? route('tasks.index') }}" style="padding: 5px 10px;background: #6600FF;color: #fff;text-decoration: none;">Accept</a>
                                     </td>
                                 </tr>
                             </tbody>
@@ -77,7 +77,7 @@
                             <tbody>
                                 <tr>
                                     <td style="text-align:center;padding-top: 15px !important;">
-                                        <a href="{{ url('projects/tasks') }}" style="padding:5px 10px;background:#138d7d;color:#fff;text-decoration:none;">View ticket</a>
+                                        <a href="{{ $ViewTicketURL ?? route('tasks.index') }}" style="padding:5px 10px;background:#138d7d;color:#fff;text-decoration:none;">View ticket</a>
                                     </td>
                                 </tr>
                             </tbody>
@@ -103,3 +103,5 @@
     </table>
 </body>
 </html>
+
+

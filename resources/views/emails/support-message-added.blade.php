@@ -14,7 +14,7 @@
             <tr>
                 <td colspan="3" align="left">
                     This is an automatic mail from Seer Dynamics Portal. Kindly login to
-                    <a href="{{ url('projects/tasks') }}" style="font-family: calibri;font-size:16px;cursor:pointer;text-decoration:underline;">Seer Dynamics Support Portal</a> to reply
+                    <a href="{{ $ViewTicketURL ?? route('tasks.index') }}" style="font-family: calibri;font-size:16px;cursor:pointer;text-decoration:underline;">Seer Dynamics Support Portal</a> to reply
                 </td>
             </tr>
             <tr>
@@ -47,3 +47,5 @@
     </table>
 </body>
 </html>
+
+
