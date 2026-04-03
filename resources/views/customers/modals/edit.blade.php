@@ -142,6 +142,7 @@ $(document).ready(function() {
         const formData = new FormData(this);
         // We need to add _method PUT manually to FormData for Laravel to process it as a PUT request with files
         formData.append('_method', 'PUT');
+        formData.set('active', $('#editActive').is(':checked') ? '1' : '0');
         
         const submitBtn = $('#updateCustomerBtn');
         submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Updating...');

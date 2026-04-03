@@ -358,7 +358,7 @@ class CustomerController extends Controller
                 'address' => $request->address,
                 'contact_person_desg' => $request->contact_person_desg,
                 'country' => $request->country,
-                'active' => $request->input('active', 1),
+                'active' => (int) $request->input('active', 0),
             ];
 
             // Only update password if provided
