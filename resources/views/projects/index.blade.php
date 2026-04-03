@@ -350,8 +350,8 @@ $(document).on('click', '.edit-project', function() {
                 $('#edit_hours').val(project.hours || '');
                 $('#edit_status').val(project.status);
                 $('#edit_ptype').val(project.ptype || '');
-                $('#edit_client_id').val(project.client_id);
-                $('#edit_project_manager').val(project.manager_id || '');
+                $('#edit_client_id').val(project.client_id).trigger('change');
+                $('#edit_project_manager').val(project.manager_id || '').trigger('change');
                 
                 // Checkboxes
                 $('#editDefaultProject').prop('checked', project.is_default == 1);

@@ -99,7 +99,7 @@
                         </div>
                         <div class="col-lg-6">
                             <label class="form-label">Project customer <span class="req">*</span></label>
-                            <select class="form-select" id="edit_client_id" name="client_id" required>
+                            <select class="form-select project-edit-modal-select2" id="edit_client_id" name="client_id" required>
                                 <option value="">Select customer</option>
                                 @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}">{{ $customer->company ?? $customer->first_name }}</option>
@@ -111,7 +111,7 @@
                     <div class="row mb-3">
                         <div class="col-lg-12">
                             <label class="form-label">Project manager</label>
-                            <select class="form-select" id="edit_project_manager" name="project_manager">
+                            <select class="form-select project-edit-modal-select2" id="edit_project_manager" name="project_manager">
                                 <option value="">Select manager</option>
                                 @foreach($consultants as $consultant)
                                 <option value="{{ $consultant->id }}">{{ $consultant->first_name }} {{ $consultant->last_name }}</option>
@@ -147,12 +147,67 @@
     </div>
 </div>
 
+@push('styles')
+<style>
+/* Keep Select2 styling unique to Edit Project modal only */
+#editProjectModal .select2-container {
+    width: 100% !important;
+}
+
+#editProjectModal .select2-container--default .select2-selection--single {
+    height: 42px;
+    border: none;
+    border-radius: 8px;
+    background-color: #F5F5F5;
+    display: flex;
+    align-items: center;
+}
+
+#editProjectModal .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #9A9A9A;
+    line-height: 42px;
+    padding-left: 12px;
+    padding-right: 30px;
+}
+
+#editProjectModal .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 42px;
+    right: 8px;
+}
+
+#editProjectModal .select2-container--default.select2-container--open .select2-selection--single,
+#editProjectModal .select2-container--default.select2-container--focus .select2-selection--single {
+    border: none;
+    box-shadow: none;
+}
+</style>
+@endpush
+
 @push('scripts')
 <script>
 // Display file name when selected (Edit modal)
 $(document).on('change', '#editContractFile', function() {
     const fileName = this.files && this.files[0] ? this.files[0].name : '';
     $('#editContractFileName').val(fileName);
+});
+
+// Enable search for customer and manager dropdowns inside edit modal
+$('#editProjectModal').on('shown.bs.modal', function() {
+    const $modal = $('#editProjectModal');
+    const $form = $('#editProjectForm');
+
+    $form.find('.project-edit-modal-select2').each(function() {
+        const $select = $(this);
+        if (!$select.hasClass('select2-hidden-accessible')) {
+            $select.select2({
+                dropdownParent: $modal.find('.modal-content'),
+                width: '100%',
+                minimumResultsForSearch: 0
+            });
+        } else {
+            $select.trigger('change.select2');
+        }
+    });
 });
 
 // Edit project form submission

@@ -96,7 +96,7 @@
                         </div>
                         <div class="col-lg-6">
                             <label class="form-label">Project customer <span class="req">*</span></label>
-                            <select class="form-select" name="client_id" required>
+                            <select class="form-select project-modal-select2" name="client_id" required>
                                 <option value="">Select customer</option>
                                 @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}">{{ $customer->company ?? $customer->first_name }}</option>
@@ -108,7 +108,7 @@
                     <div class="row mb-3">
                         <div class="col-lg-12">
                             <label class="form-label">Project manager</label>
-                            <select class="form-select" name="project_manager">
+                            <select class="form-select project-modal-select2" name="project_manager">
                                 <option value="">Select manager</option>
                                 @foreach($consultants as $consultant)
                                 <option value="{{ $consultant->id }}">{{ $consultant->first_name }} {{ $consultant->last_name }}</option>
@@ -144,6 +144,42 @@
     </div>
 </div>
 
+@push('styles')
+<style>
+/* Keep Select2 styling unique to Create Project modal only */
+#createProjectModal .select2-container {
+    width: 100% !important;
+}
+
+#createProjectModal .select2-container--default .select2-selection--single {
+    height: 42px;
+    border: none;
+    border-radius: 8px;
+    background-color: #F5F5F5;
+    display: flex;
+    align-items: center;
+}
+
+#createProjectModal .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #9A9A9A;
+    line-height: 42px;
+    padding-left: 12px;
+    padding-right: 30px;
+}
+
+#createProjectModal .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 42px;
+    right: 8px;
+}
+
+#createProjectModal .select2-container--default.select2-container--open .select2-selection--single,
+#createProjectModal .select2-container--default.select2-container--focus .select2-selection--single {
+    border: none;
+    box-shadow: none;
+}
+</style>
+@endpush
+
 @push('scripts')
 <script>
 // Display file name when selected
@@ -153,14 +189,27 @@ $(document).on('change', '#createContractFile', function() {
 });
 
 // Ensure date fields default to today whenever modal opens
-$('#createProjectModal').on('show.bs.modal', function() {
+$('#createProjectModal').on('shown.bs.modal', function() {
     const today = new Date().toISOString().slice(0, 10);
+    const $modal = $('#createProjectModal');
     const $form = $('#createProjectForm');
 
     ['starting_date', 'ending_date', 'actual_starting_date', 'actual_ending_date'].forEach(function(name) {
         const $input = $form.find(`[name="${name}"]`);
         if ($input.length && !$input.val()) {
             $input.val(today);
+        }
+    });
+
+    // Enable search for customer and manager dropdowns inside modal
+    $form.find('.project-modal-select2').each(function() {
+        const $select = $(this);
+        if (!$select.hasClass('select2-hidden-accessible')) {
+            $select.select2({
+                dropdownParent: $modal.find('.modal-content'),
+                width: '100%',
+                minimumResultsForSearch: 0
+            });
         }
     });
 });
