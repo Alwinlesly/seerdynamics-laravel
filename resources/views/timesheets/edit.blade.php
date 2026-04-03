@@ -7,7 +7,44 @@
 .pg-nv a { color: #888; text-decoration: none; }
 .pg-nv .activePage { color: #513998; }
 
-.timesheet-container { width: 100%; }
+.timesheet-edit-page .right-section { min-width: 0; }
+.timesheet-edit-page { overflow-x: hidden; }
+
+.timesheet-edit-page .table-responsive.table-for-create {
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    display: block;
+    width: 100%;
+}
+
+.timesheet-edit-page .timesheet-grid-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.timesheet-edit-page .timesheet-grid-scroll .timesheet-table {
+    width: max-content !important;
+    min-width: 100% !important;
+}
+
+.timesheet-edit-page .timesheet-table th,
+.timesheet-edit-page .timesheet-table td {
+    white-space: nowrap;
+}
+
+.timesheet-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+#timesheetForm {
+    width: 100%;
+    max-width: 100%;
+}
 
 .header-controls {
     display: flex;
@@ -72,6 +109,18 @@
 }
 .hour-input:focus { border-color: #7d6bb2; outline: none; box-shadow: 0 0 0 .15rem rgba(125,107,178,.2); }
 
+.note-link {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    line-height: 1;
+    text-align: center;
+    color: #513998;
+    font-size: 12px;
+    text-decoration: none;
+}
+.note-link:hover { color: #3e2d79; }
+
 .sv-draft {
     padding: 8px 22px; border-radius: 6px; font-size: 13px; font-weight: 600;
     cursor: pointer; background: #f0edfa; color: #513998;
@@ -88,6 +137,23 @@
     display: flex; align-items: center; padding: 0 10px;
     background: #f8f9fa; border: 1px solid #dee2e6;
     border-left: 0; border-radius: 0 6px 6px 0; cursor: pointer;
+}
+
+.ctb-row {
+    width: 100% !important;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.timesheet-edit-page .ctb-row > .col-md-4 {
+    display: flex;
+    flex-direction: column;
+}
+
+.timesheet-edit-page .ctb-row > .col-md-4 > .form-select,
+.timesheet-edit-page .ctb-row > .col-md-4 > .input-group.date {
+    width: 100%;
+    max-width: 100%;
 }
 </style>
 @endpush
@@ -114,7 +180,7 @@
     </div>
 </div>
 
-<div class="main">
+<div class="main timesheet-edit-page">
     @include('partials.header')
     <div class="row m-0">
         @include('partials.sidebar')
@@ -202,76 +268,81 @@
                                     </button>
                                 </div>
 
-                                <table class="table timesheet-table" id="timesheettable">
-                                    <thead>
-                                        <tr id="tableHeaderRow">
-                                            <th class="checkbox-col br-col"></th>
-                                            <th class="customer-col">Customer</th>
-                                            <th class="project-col">Project</th>
-                                            <th class="ticket-col">Ticket</th>
-                                            @foreach($dates as $k => $date)
-                                                <th class="date-col date-th">
-                                                    {{ date('D', strtotime($date)) }}<br>
-                                                    {{ date('d/m', strtotime($date)) }}
-                                                    <input type="hidden" name="date_{{ $k+1 }}" value="{{ $date }}">
-                                                    <input type="hidden" name="day_{{ $k+1 }}" value="{{ date('D', strtotime($date)) }}">
-                                                </th>
+                                <div class="timesheet-grid-scroll">
+                                    <table class="table timesheet-table" id="timesheettable">
+                                        <thead>
+                                            <tr id="tableHeaderRow">
+                                                <th class="checkbox-col br-col"></th>
+                                                <th class="customer-col">Customer</th>
+                                                <th class="project-col">Project</th>
+                                                <th class="ticket-col">Ticket</th>
+                                                @foreach($dates as $k => $date)
+                                                    <th class="date-col date-th">
+                                                        {{ date('D', strtotime($date)) }}<br>
+                                                        {{ date('d/m', strtotime($date)) }}
+                                                        <input type="hidden" name="date_{{ $k+1 }}" value="{{ $date }}">
+                                                        <input type="hidden" name="day_{{ $k+1 }}" value="{{ date('D', strtotime($date)) }}">
+                                                    </th>
+                                                @endforeach
+                                                <th class="billable-col">Billable<br>/Non-billable</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="timesheetTableBody">
+                                            {{-- Pre-populate existing rows --}}
+                                            @foreach($timesheetprojects as $ri => $proj)
+                                            @php $rowNum = $ri + 1; @endphp
+                                            <tr>
+                                                <td class="checkbox-col">
+                                                    <input type="checkbox" class="form-check-input row-checkbox" value="{{ $rowNum }}">
+                                                </td>
+                                                <td class="customer-col">
+                                                    <select class="form-select" id="customer_{{ $rowNum }}" name="customer_{{ $rowNum }}"
+                                                            onchange="loadProjectsForRow({{ $rowNum }})">
+                                                        <option value="">Select Customer</option>
+                                                    </select>
+                                                </td>
+                                                <td class="project-col">
+                                                    <select class="form-select" id="project_id_{{ $rowNum }}" name="project_id_{{ $rowNum }}"
+                                                            onchange="loadTicketsForRow({{ $rowNum }})">
+                                                        <option value="">Select Project</option>
+                                                    </select>
+                                                </td>
+                                                <td class="ticket-col">
+                                                    <select class="form-select" id="task_id_{{ $rowNum }}" name="task_id_{{ $rowNum }}">
+                                                        <option value="">Select Ticket</option>
+                                                    </select>
+                                                </td>
+                                                @foreach($dates as $k => $date)
+                                                @php
+                                                    $hrEntry = $proj->hours->firstWhere('date', $date);
+                                                    $hrs     = $hrEntry ? $hrEntry->hours : '';
+                                                    $note    = $hrEntry ? ($hrEntry->note ?? '') : '';
+                                                @endphp
+                                                <td class="date-col text-center">
+                                                    <input type="number" class="hour-input"
+                                                           name="totalhour_{{ $rowNum }}_{{ $k+1 }}"
+                                                           id="totalhour_{{ $rowNum }}_{{ $k+1 }}"
+                                                           min="0" max="24" step="0.5"
+                                                           value="{{ $hrs }}">
+                                                    <a href="#" class="note-link note-trigger" data-row="{{ $rowNum }}" data-col="{{ $k+1 }}" title="Add note">
+                                                        <i class="bi bi-sticky"></i>
+                                                    </a>
+                                                    <textarea id="note_{{ $rowNum }}_{{ $k+1 }}"
+                                                              name="note_{{ $rowNum }}_{{ $k+1 }}"
+                                                              style="display:none;">{{ $note }}</textarea>
+                                                </td>
+                                                @endforeach
+                                                <td class="billable-col">
+                                                    <select class="form-select" name="billable_not_{{ $rowNum }}" id="billable_not_{{ $rowNum }}">
+                                                        <option value="1" {{ $proj->billable ? 'selected' : '' }}>Billable</option>
+                                                        <option value="0" {{ !$proj->billable ? 'selected' : '' }}>Non-billable</option>
+                                                    </select>
+                                                </td>
+                                            </tr>
                                             @endforeach
-                                            <th class="billable-col">Billable<br>/Non-billable</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="timesheetTableBody">
-                                        {{-- Pre-populate existing rows --}}
-                                        @foreach($timesheetprojects as $ri => $proj)
-                                        @php $rowNum = $ri + 1; @endphp
-                                        <tr>
-                                            <td class="checkbox-col">
-                                                <input type="checkbox" class="form-check-input row-checkbox" value="{{ $rowNum }}">
-                                            </td>
-                                            <td class="customer-col">
-                                                <select class="form-select" id="customer_{{ $rowNum }}" name="customer_{{ $rowNum }}"
-                                                        onchange="loadProjectsForRow({{ $rowNum }})">
-                                                    <option value="">Select Customer</option>
-                                                </select>
-                                            </td>
-                                            <td class="project-col">
-                                                <select class="form-select" id="project_id_{{ $rowNum }}" name="project_id_{{ $rowNum }}"
-                                                        onchange="loadTicketsForRow({{ $rowNum }})">
-                                                    <option value="">Select Project</option>
-                                                </select>
-                                            </td>
-                                            <td class="ticket-col">
-                                                <select class="form-select" id="task_id_{{ $rowNum }}" name="task_id_{{ $rowNum }}">
-                                                    <option value="">Select Ticket</option>
-                                                </select>
-                                            </td>
-                                            @foreach($dates as $k => $date)
-                                            @php
-                                                $hrEntry = $proj->hours->firstWhere('date', $date);
-                                                $hrs     = $hrEntry ? $hrEntry->hours : '';
-                                                $note    = $hrEntry ? ($hrEntry->note ?? '') : '';
-                                            @endphp
-                                            <td class="date-col text-center">
-                                                <input type="number" class="hour-input"
-                                                       name="totalhour_{{ $rowNum }}_{{ $k+1 }}"
-                                                       id="totalhour_{{ $rowNum }}_{{ $k+1 }}"
-                                                       min="0" max="24" step="0.5"
-                                                       value="{{ $hrs }}">
-                                                <textarea id="note_{{ $rowNum }}_{{ $k+1 }}"
-                                                          name="note_{{ $rowNum }}_{{ $k+1 }}"
-                                                          style="display:none;">{{ $note }}</textarea>
-                                            </td>
-                                            @endforeach
-                                            <td class="billable-col">
-                                                <select class="form-select" name="billable_not_{{ $rowNum }}" id="billable_not_{{ $rowNum }}">
-                                                    <option value="1" {{ $proj->billable ? 'selected' : '' }}>Billable</option>
-                                                    <option value="0" {{ !$proj->billable ? 'selected' : '' }}>Non-billable</option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                                        </tbody>
+                                    </table>
+                                </div>
 
                                 {{-- Preload data for JS --}}
                                 @php
@@ -380,6 +451,9 @@ function buildRow(rowNum, cols) {
             <input type="number" class="hour-input"
                    name="totalhour_${rowNum}_${j}" id="totalhour_${rowNum}_${j}"
                    min="0" max="24" step="0.5" value="">
+            <a href="#" class="note-link note-trigger" data-row="${rowNum}" data-col="${j}" title="Add note">
+                <i class="bi bi-sticky"></i>
+            </a>
             <textarea id="note_${rowNum}_${j}" name="note_${rowNum}_${j}" style="display:none;"></textarea>
         </td>`;
     }
@@ -494,6 +568,23 @@ document.getElementById('saveNoteBtn').addEventListener('click', function () {
     }
     const m = bootstrap.Modal.getInstance(document.getElementById('notemodal'));
     if (m) m.hide();
+});
+
+document.addEventListener('click', function (e) {
+    const trigger = e.target.closest('.note-trigger');
+    if (!trigger) return;
+    e.preventDefault();
+
+    const i = trigger.getAttribute('data-row');
+    const j = trigger.getAttribute('data-col');
+    const noteEl = document.getElementById(`note_${i}_${j}`);
+
+    document.getElementById('rowid').value = i;
+    document.getElementById('colid').value = j;
+    document.getElementById('modalnote').value = noteEl ? (noteEl.value || '') : '';
+
+    const modal = new bootstrap.Modal(document.getElementById('notemodal'));
+    modal.show();
 });
 
 // ─────────────────────────────────────────────

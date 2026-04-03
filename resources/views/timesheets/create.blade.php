@@ -5,9 +5,45 @@
 <style>
 /* ===== Create Weekly Timesheet Styles (matching provided design) ===== */
 
+/* Prevent full-page horizontal overflow on create screen */
+.timesheet-create-page .right-section {
+    min-width: 0;
+}
+
+.timesheet-create-page {
+    overflow-x: hidden;
+}
+
+.timesheet-create-page #maindiv .table-responsive.table-for-create {
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    display: block;
+    width: 100%;
+}
+
+.timesheet-create-page #maindiv .timesheet-grid-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.timesheet-create-page #maindiv .timesheet-table {
+    width: max-content;
+    min-width: 100%;
+}
+
+.timesheet-create-page #maindiv .timesheet-table th,
+.timesheet-create-page #maindiv .timesheet-table td {
+    white-space: nowrap;
+}
+
 /* Timesheet container */
 .timesheet-container {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
 }
 
 /* Header controls (New Line / Remove Line buttons) */
@@ -72,6 +108,12 @@
     vertical-align: middle;
 }
 
+/* Force horizontal scroll to appear inside grid wrapper */
+.timesheet-create-page #maindiv .timesheet-grid-scroll .timesheet-table {
+    width: max-content !important;
+    min-width: 100% !important;
+}
+
 .checkbox-col { width: 40px; text-align: center; }
 .customer-col { min-width: 140px; }
 .project-col  { min-width: 140px; }
@@ -121,6 +163,18 @@
     outline: none;
     box-shadow: 0 0 0 0.15rem rgba(125,107,178,.2);
 }
+
+.note-link {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    line-height: 1;
+    text-align: center;
+    color: #513998;
+    font-size: 12px;
+    text-decoration: none;
+}
+.note-link:hover { color: #3e2d79; }
 
 /* Save/Submit buttons */
 .sv-draft {
@@ -182,6 +236,23 @@
     margin-right: 0;
 }
 
+#timesheetForm {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Top row: keep Consultant/Start/End equal and aligned to available width */
+.timesheet-create-page .ctb-row > .col-md-4 {
+    display: flex;
+    flex-direction: column;
+}
+
+.timesheet-create-page .ctb-row > .col-md-4 > .form-select,
+.timesheet-create-page .ctb-row > .col-md-4 > .input-group.date {
+    width: 100%;
+    max-width: 100%;
+}
+
 .ctb-row .form-select,
 .ctb-row .form-control {
     width: 100%;
@@ -209,6 +280,7 @@
     background: transparent;
     padding: 0;
 }
+
 </style>
 @endpush
 
@@ -234,7 +306,7 @@
     </div>
 </div>
 
-<div class="main">
+<div class="main timesheet-create-page">
     {{-- Top Header --}}
     @include('partials.header')
 
@@ -331,22 +403,24 @@
                                         </button>
                                     </div>
 
-                                    {{-- Timesheet table --}}
-                                    <table class="table timesheet-table" id="timesheettable">
-                                        <thead>
-                                            <tr id="tableHeaderRow">
-                                                <th class="checkbox-col br-col"></th>
-                                                <th class="customer-col">Customer</th>
-                                                <th class="project-col">Project</th>
-                                                <th class="ticket-col">Ticket</th>
-                                                {{-- Date headers inserted dynamically by JS --}}
-                                                <th class="billable-col">Billable<br>/Non-billable</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="timesheetTableBody">
-                                            {{-- Rows inserted dynamically by JS --}}
-                                        </tbody>
-                                    </table>
+                                    <div class="timesheet-grid-scroll">
+                                        {{-- Timesheet table --}}
+                                        <table class="table timesheet-table" id="timesheettable">
+                                            <thead>
+                                                <tr id="tableHeaderRow">
+                                                    <th class="checkbox-col br-col"></th>
+                                                    <th class="customer-col">Customer</th>
+                                                    <th class="project-col">Project</th>
+                                                    <th class="ticket-col">Ticket</th>
+                                                    {{-- Date headers inserted dynamically by JS --}}
+                                                    <th class="billable-col">Billable<br>/Non-billable</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="timesheetTableBody">
+                                                {{-- Rows inserted dynamically by JS --}}
+                                            </tbody>
+                                        </table>
+                                    </div>
 
                                 </div>{{-- .timesheet-container --}}
 
@@ -511,6 +585,9 @@ function buildRow(rowNum, cols) {
             <input type="number" class="hour-input"
                    name="totalhour_${rowNum}_${j}" id="totalhour_${rowNum}_${j}"
                    min="0" max="24" step="0.5" value="">
+            <a href="#" class="note-link note-trigger" data-row="${rowNum}" data-col="${j}" title="Add note">
+                <i class="bi bi-sticky"></i>
+            </a>
             <textarea id="note_${rowNum}_${j}" name="note_${rowNum}_${j}"
                       style="display:none;"></textarea>
         </td>`;
@@ -626,6 +703,23 @@ document.getElementById('saveNoteBtn').addEventListener('click', function () {
     }
     const m = bootstrap.Modal.getInstance(document.getElementById('notemodal'));
     if (m) m.hide();
+});
+
+document.addEventListener('click', function (e) {
+    const trigger = e.target.closest('.note-trigger');
+    if (!trigger) return;
+    e.preventDefault();
+
+    const i = trigger.getAttribute('data-row');
+    const j = trigger.getAttribute('data-col');
+    const noteEl = document.getElementById(`note_${i}_${j}`);
+
+    document.getElementById('rowid').value = i;
+    document.getElementById('colid').value = j;
+    document.getElementById('modalnote').value = noteEl ? (noteEl.value || '') : '';
+
+    const modal = new bootstrap.Modal(document.getElementById('notemodal'));
+    modal.show();
 });
 
 // ─────────────────────────────────────────────
