@@ -190,6 +190,61 @@
         opacity: 1;
         cursor: not-allowed;
     }
+
+    /* Keep release table readable: prefer horizontal scroll over squeezed columns */
+    .tbl-ticket-release {
+        table-layout: auto !important;
+        min-width: 1700px;
+    }
+
+    .tbl-ticket-release th,
+    .tbl-ticket-release td {
+        overflow-wrap: normal !important;
+        word-break: normal !important;
+    }
+
+    .tbl-ticket-release .check-td {
+        width: 48px;
+        min-width: 48px;
+        text-align: center;
+    }
+
+    .tbl-ticket-release .ts-th,
+    .tbl-ticket-release .ts-td {
+        min-width: 240px;
+    }
+
+    .tbl-ticket-release .td-ticket {
+        min-width: 230px;
+    }
+
+    .tbl-ticket-release th.has-border,
+    .tbl-ticket-release td.has-border {
+        min-width: 120px;
+    }
+
+    .tbl-ticket-release th:nth-child(9),
+    .tbl-ticket-release td:nth-child(9) {
+        min-width: 170px;
+    }
+
+    .tbl-ticket-release th:nth-child(10),
+    .tbl-ticket-release td:nth-child(10) {
+        min-width: 170px;
+    }
+
+    .tbl-ticket-release th:nth-child(11),
+    .tbl-ticket-release td:nth-child(11) {
+        min-width: 220px;
+    }
+
+    .tbl-ticket-release .ttl-estimate {
+        white-space: nowrap;
+    }
+
+    .tbl-ticket-release td input.form-control[type="number"] {
+        min-width: 90px;
+    }
 </style>
 @endpush
 
