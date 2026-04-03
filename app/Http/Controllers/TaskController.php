@@ -859,13 +859,16 @@ class TaskController extends Controller
                 }
                 $task->save();
 
-                // Existing project behavior: in close/update popup customer admin can assign users.
-                if ($request->has('users')) {
-                    $users = $request->input('users', []);
-                    if (is_array($users)) {
-                        $task->users()->sync($users);
-                    } else {
-                        $task->users()->sync([]);
+                // Existing project behavior: in close/update popup customer admin can add users
+                // without dropping already assigned users.
+                if ($request->filled('users')) {
+                    $incomingUsers = array_values(array_unique(array_map('intval', (array) $request->input('users', []))));
+                    if (!empty($incomingUsers)) {
+                        $existingUsers = $task->users()->pluck('users.id')->map(function ($id) {
+                            return (int) $id;
+                        })->toArray();
+                        $mergedUsers = array_values(array_unique(array_merge($existingUsers, $incomingUsers)));
+                        $task->users()->sync($mergedUsers);
                     }
                 }
 
