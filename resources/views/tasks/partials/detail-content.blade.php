@@ -373,8 +373,8 @@
                     </div>
                     <div class="col-md-5">
                         <div>
-                            <div class="mb-2">Estimate in days : <span id="estimateDaysText">0.0</span></div>
-                            <div>Estimate in hours : <span id="estimateHoursText">0.00</span></div>
+                            <div class="mb-2">Total Estimate in Days : <span id="estimateDaysText">0.0</span></div>
+                            <div>Total estimate in Hours : <span id="estimateHoursText">0.00</span></div>
                         </div>
                         <input type="hidden" id="estimateDays" name="estimate_days" value="0">
                         <input type="hidden" id="estimateHours" name="estimate_hours" value="0">

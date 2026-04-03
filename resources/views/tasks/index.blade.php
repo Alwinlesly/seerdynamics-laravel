@@ -974,13 +974,13 @@
 
             let lines = '';
             if (val.is_customer) {
-                lines += `<div class="text-muted">Estimate in Days : ${val.estimate_days ?? ''}</div>`;
-                lines += `<div class="text-muted">Estimate in Hours : ${val.estimate_hours ?? ''}</div>`;
+                lines += `<div class="text-muted">Total Estimate in Days : ${val.estimate_days ?? ''}</div>`;
+                lines += `<div class="text-muted">Total estimate in Hours : ${val.estimate_hours ?? ''}</div>`;
             } else {
                 lines += `<div class="text-muted">Estimate Technical : ${val.estimate_tech ?? ''}</div>`;
                 lines += `<div class="text-muted">Estimate Functional : ${val.estimate_func ?? ''}</div>`;
-                lines += `<div class="text-muted">Estimate in Days : ${val.estimate_days ?? ''}</div>`;
-                lines += `<div class="text-muted">Estimate in Hours : ${val.estimate_hours ?? ''}</div>`;
+                lines += `<div class="text-muted">Total Estimate in Days : ${val.estimate_days ?? ''}</div>`;
+                lines += `<div class="text-muted">Total estimate in Hours : ${val.estimate_hours ?? ''}</div>`;
             }
 
             html += `
@@ -998,7 +998,7 @@
             `;
         });
 
-        $('#estimateSaveBtn').text('Edit');
+        $('#estimateSaveBtn').text('Update');
         $('#estimateList').html(html);
     }
 
