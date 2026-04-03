@@ -42,7 +42,7 @@
 
                 <div class="ticket-status-summary" id="ticketStatusSummary"></div>
 
-                <div class="sel-wrapper">
+                <div class="sel-wrapper filters-initializing" id="taskFiltersRow">
                     @if(!auth()->user()->inGroup(4))
                     <select class="form-select searchable-filter" id="customerFilter">
                         <option value="">Customer</option>
@@ -126,7 +126,9 @@
                                 </tr>
                             </thead>
                             <tbody id="tasksTableBody">
-                                <!-- Tasks will be loaded here via AJAX -->
+                                <tr>
+                                    <td colspan="10" class="text-center">Loading...</td>
+                                </tr>
                             </tbody>
                         </table>
 
@@ -296,6 +298,17 @@
     flex: 0 0 auto;
 }
 
+/* Avoid FOUC on refresh: show filters only after Select2 init completes */
+.right-section .sel-wrapper.filters-initializing {
+    visibility: hidden;
+    opacity: 0;
+}
+
+.right-section .sel-wrapper.filters-ready {
+    visibility: visible;
+    opacity: 1;
+}
+
 /* Keep ticket status chips readable in listing table */
 .my-table th:nth-child(9),
 .my-table td:nth-child(9) {
@@ -432,10 +445,16 @@
 
     $(document).ready(function() {
         // Match existing project behavior: searchable filter dropdowns.
-        $('.searchable-filter').select2({
-            width: 'resolve',
-            minimumResultsForSearch: 0
-        });
+        try {
+            $('.searchable-filter').select2({
+                width: 'resolve',
+                minimumResultsForSearch: 0
+            });
+        } finally {
+            $('#taskFiltersRow')
+                .removeClass('filters-initializing')
+                .addClass('filters-ready');
+        }
 
         // Keep original option sets to support dependent filtering.
         allProjectFilterOptions = $('#projectFilter option').clone();
@@ -531,6 +550,8 @@
         const priority = $('#priorityFilter').val();
         const sort = $('#sortFilter').val();
         const offset = (currentPage - 1) * limit;
+
+        $('#tasksTableBody').html('<tr><td colspan="10" class="text-center">Loading...</td></tr>');
 
         $.ajax({
             url: '/tasks/list',
