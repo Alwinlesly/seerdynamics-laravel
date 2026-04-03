@@ -632,7 +632,11 @@ class TimesheetController extends Controller
         $clients = User::join('users_groups', 'users.id', '=', 'users_groups.user_id')
             ->where('users_groups.group_id', 3)
             ->where('users.active', 1)
+            ->where('users.is_company', 1)
+            ->whereNotNull('users.company')
+            ->where('users.company', '!=', '')
             ->select('users.id', 'users.first_name', 'users.last_name', 'users.company')
+            ->orderBy('users.company')
             ->get();
 
         return response()->json(['system_clients' => $clients]);
@@ -647,14 +651,32 @@ class TimesheetController extends Controller
         $customerId  = $request->input('customerid');
         $projectType = $request->input('projecttype');
 
-        $query = Project::where('client_id', $customerId)
-            ->where('is_visible', 0); // visible == not deleted
+        $allowedStatusIds = DB::table('project_status')
+            ->whereIn(DB::raw('LOWER(TRIM(title))'), ['on going', 'on hold'])
+            ->pluck('id')
+            ->toArray();
+
+        $query = Project::query()
+            ->join('project_status as ps', 'ps.id', '=', 'projects.status')
+            ->where('projects.client_id', $customerId)
+            ->where('projects.is_visible', 0) // visible == not deleted
+            ->where(function ($q) use ($allowedStatusIds) {
+                if (!empty($allowedStatusIds)) {
+                    $q->whereIn('projects.status', $allowedStatusIds);
+                } else {
+                    // Fallback by title if IDs are not found due to data variations.
+                    $q->whereIn(DB::raw('LOWER(TRIM(ps.title))'), ['on going', 'on hold']);
+                }
+            });
 
         if ($projectType) {
-            $query->where('ptype', $projectType);
+            $query->where('projects.ptype', $projectType);
         }
 
-        $projects = $query->select('id', 'project_id', 'title')->get();
+        $projects = $query
+            ->select('projects.id', 'projects.project_id', 'projects.title')
+            ->orderByDesc('projects.created')
+            ->get();
 
         return response()->json(['projects' => $projects]);
     }
