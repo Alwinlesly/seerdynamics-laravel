@@ -973,15 +973,15 @@ class TaskController extends Controller
             
             $task->update($validated);
             
-            // Update assignees only when users[] is explicitly submitted.
-            // This preserves existing task_users for consultant edits where
-            // assign-users controls are not present in the modal.
-            if ($request->has('users')) {
-                $users = $request->users;
-                if (is_array($users)) {
-                    $task->users()->sync($users);
-                } else {
-                    $task->users()->sync([]);
+            // Existing project behavior: add selected users without auto-removing existing assignees.
+            if ($request->filled('users')) {
+                $incomingUsers = array_values(array_unique(array_map('intval', (array) $request->input('users', []))));
+                if (!empty($incomingUsers)) {
+                    $existingUsers = $task->users()->pluck('users.id')->map(function ($id) {
+                        return (int) $id;
+                    })->toArray();
+                    $mergedUsers = array_values(array_unique(array_merge($existingUsers, $incomingUsers)));
+                    $task->users()->sync($mergedUsers);
                 }
             }
             
