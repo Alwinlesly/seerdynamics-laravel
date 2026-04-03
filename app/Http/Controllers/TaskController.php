@@ -1037,6 +1037,18 @@ class TaskController extends Controller
             }
             
             $tasks = $query->orderBy('id', 'desc')->get();
+
+            // Match task list behavior: use latest estimate_hours from task_estimate, fallback to tasks.estimate.
+            $latestEstimateByTask = collect();
+            $taskIds = $tasks->pluck('id')->filter()->values();
+            if ($taskIds->isNotEmpty()) {
+                $latestEstimateByTask = TaskEstimate::query()
+                    ->whereIn('task_id', $taskIds)
+                    ->orderByDesc('id')
+                    ->get(['task_id', 'estimate_hours'])
+                    ->unique('task_id')
+                    ->keyBy('task_id');
+            }
             
             // Create CSV content
             $filename = 'tasks_' . date('Y-m-d_H-i-s') . '.csv';
@@ -1062,6 +1074,11 @@ class TaskController extends Controller
             
             // Data rows
             foreach ($tasks as $task) {
+                $latestEstimate = $latestEstimateByTask->get($task->id);
+                $estimateValue = $latestEstimate && $latestEstimate->estimate_hours !== null
+                    ? $latestEstimate->estimate_hours
+                    : ($task->estimate ?? 0);
+
                 fputcsv($handle, [
                     $task->ticket_id ?? '#' . str_pad($task->id, 4, '0', STR_PAD_LEFT),
                     $task->title,
@@ -1071,7 +1088,7 @@ class TaskController extends Controller
                         ($task->project->client->company ?? $task->project->client->first_name) : '',
                     $task->taskStatus->title ?? 'Not Started',
                     $task->taskPriority->title ?? '',
-                    $task->estimate ?? 0,
+                    $estimateValue,
                     $task->creator ? $task->creator->first_name . ' ' . $task->creator->last_name : '',
                     $task->created ? date('d-M-Y', strtotime($task->created)) : '',
                     $task->due_date ? date('d-M-Y', strtotime($task->due_date)) : '',
