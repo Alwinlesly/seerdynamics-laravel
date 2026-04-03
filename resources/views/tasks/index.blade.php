@@ -1090,6 +1090,7 @@
         stopTimerDisplay();
     });
     let originalEditStatusOptionsHtml = null;
+    let currentEditTaskModalMode = 'edit';
 
     function applyCloseModeStatusOptions() {
         const $status = $('#edit_status');
@@ -1138,12 +1139,73 @@
         $status.trigger('change.select2');
     }
 
+    function applyConsultantStatusOptions(currentStatusTitle) {
+        const $status = $('#edit_status');
+        if (!$status.length) return;
+
+        if (originalEditStatusOptionsHtml === null) {
+            originalEditStatusOptionsHtml = $status.html();
+        }
+
+        const normalizedCurrent = String(currentStatusTitle || '')
+            .toLowerCase()
+            .replace(/[\s_-]+/g, '');
+
+        const transitions = {
+            inprogress: ['undercustomerreview', 'onhold', 'completed'],
+            undercustomerreview: ['inprogress', 'onhold', 'completed'],
+            onhold: ['inprogress', 'undercustomerreview', 'completed']
+        };
+
+        const allowedNext = transitions[normalizedCurrent] || [];
+        const selectedBefore = String($status.val() || '');
+        const allowedOptions = [];
+
+        $status.find('option').each(function() {
+            const label = String($(this).text() || '').trim();
+            const value = String($(this).val() || '').trim();
+            const normalizedLabel = label.toLowerCase().replace(/[\s_-]+/g, '');
+            if (value !== '' && allowedNext.includes(normalizedLabel)) {
+                allowedOptions.push({ value: value, label: label });
+            }
+        });
+
+        if (!allowedOptions.length) {
+            // Fallback: keep current status only if no transition is configured.
+            const currentOption = $status.find('option').filter(function() {
+                const normalizedLabel = String($(this).text() || '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+                return normalizedLabel === normalizedCurrent;
+            }).first();
+            if (currentOption.length) {
+                $status.html(`<option value="${currentOption.val()}">${currentOption.text()}</option>`);
+                $status.val(String(currentOption.val()));
+            }
+            $status.trigger('change.select2');
+            return;
+        }
+
+        let optionsHtml = '';
+        allowedOptions.forEach(function(opt) {
+            optionsHtml += `<option value="${opt.value}">${opt.label}</option>`;
+        });
+        $status.html(optionsHtml);
+
+        const selectedStillValid = allowedOptions.some(function(opt) {
+            return String(opt.value) === selectedBefore;
+        });
+        $status.val(selectedStillValid ? selectedBefore : allowedOptions[0].value);
+        $status.trigger('change.select2');
+    }
+
     // Toggle edit modal mode: full edit vs close-only view.
     function setEditTaskModalMode(mode) {
+        currentEditTaskModalMode = mode;
         const isCloseMode = mode === 'close';
+        const isConsultantMode = mode === 'consultant';
         const $modal = $('#editTaskModal');
         $modal.toggleClass('close-mode', isCloseMode);
-        $('#editTaskModalLabel').text(isCloseMode ? 'Close ticket' : 'Edit ticket');
+        $modal.toggleClass('consultant-status-mode', isConsultantMode);
+        $('#editTaskModalLabel').text(isCloseMode ? 'Close ticket' : (isConsultantMode ? 'Update ticket status' : 'Edit ticket'));
 
         if (isCloseMode) {
             applyCloseModeStatusOptions();
@@ -1170,8 +1232,11 @@
                         showToast('error', 'This Ticket has been Closed/Completed');
                         return;
                     }
-                    setEditTaskModalMode('edit');
+                    setEditTaskModalMode(isConsultantUser ? 'consultant' : 'edit');
                     populateEditForm(response.task);
+                    if (isConsultantUser) {
+                        applyConsultantStatusOptions(response.task?.status_title || response.task?.status || '');
+                    }
                     $('#editTaskModal').modal('show');
                 }
             },

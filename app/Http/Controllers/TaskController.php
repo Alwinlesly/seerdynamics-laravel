@@ -731,6 +731,7 @@ class TaskController extends Controller
 
         $user = auth()->user();
         $isCustomerCloser = $user->inGroup(3) || $user->inGroup(4);
+        $isConsultant = $user->inGroup(2);
         $canGeneralEdit = $user->inGroup(1) || permissions('task_edit');
 
         // General edit is for admin/permitted internal users.
@@ -744,6 +745,73 @@ class TaskController extends Controller
             $requestedStatus = $requestedStatusTitle !== ''
                 ? TaskStatus::where('title', $requestedStatusTitle)->first()
                 : null;
+
+            // Consultant flow: status-only update (no full field edit).
+            if ($isConsultant) {
+                if (!$this->canAccessTask($user, $task)) {
+                    return response()->json(['error' => true, 'message' => 'Access Denied'], 403);
+                }
+
+                if (!$requestedStatus) {
+                    return response()->json(['error' => true, 'message' => 'Status is required'], 422);
+                }
+
+                $oldStatus = (int) $task->status;
+                $newStatus = (int) $requestedStatus->id;
+
+                $allStatuses = TaskStatus::all();
+                $statusTitleById = [];
+                foreach ($allStatuses as $statusRow) {
+                    $statusTitleById[(int) $statusRow->id] = strtolower(preg_replace('/[\s_-]+/', '', (string) $statusRow->title));
+                }
+                $currentNormalized = $statusTitleById[$oldStatus] ?? '';
+                $requestedNormalized = strtolower(preg_replace('/[\s_-]+/', '', (string) $requestedStatus->title));
+
+                if (in_array($currentNormalized, ['closed', 'completed'], true)) {
+                    return response()->json([
+                        'error' => true,
+                        'message' => 'This Ticket has been Closed/Completed'
+                    ], 422);
+                }
+
+                $allowedTransitions = [
+                    'inprogress' => ['undercustomerreview', 'onhold', 'completed'],
+                    'undercustomerreview' => ['inprogress', 'onhold', 'completed'],
+                    'onhold' => ['inprogress', 'undercustomerreview', 'completed'],
+                ];
+
+                if (isset($allowedTransitions[$currentNormalized]) && !in_array($requestedNormalized, $allowedTransitions[$currentNormalized], true)) {
+                    return response()->json([
+                        'error' => true,
+                        'message' => 'Invalid status transition for consultant'
+                    ], 422);
+                }
+
+                $task->status = $newStatus;
+                if ($requestedNormalized === 'completed' && $currentNormalized !== 'completed') {
+                    $task->completed_date = now();
+                }
+                if ($requestedNormalized === 'closed') {
+                    $task->closed_date = now();
+                }
+                $task->save();
+
+                try {
+                    $data = [];
+                    if ($requestedNormalized === 'completed' && $currentNormalized !== 'completed') {
+                        EmailService::sendTicketEmail($task->id, 'TKTCOMPL', $data);
+                    } elseif ($requestedNormalized === 'closed' && $currentNormalized !== 'closed') {
+                        EmailService::sendTicketEmail($task->id, 'TKTCLOSE', $data);
+                    }
+                } catch (\Exception $emailEx) {
+                    \Log::error('Email notification failed for consultant status update: ' . $emailEx->getMessage());
+                }
+
+                return response()->json([
+                    'error' => false,
+                    'message' => 'Task status updated successfully'
+                ]);
+            }
 
             // Customer admin/user: allow only "Completed -> Closed" flow.
             if ($isCustomerCloser) {

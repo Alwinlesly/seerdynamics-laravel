@@ -177,6 +177,13 @@
     flex: 0 0 100%;
     max-width: 100%;
 }
+#editTaskModal.consultant-status-mode .edit-full-only {
+    display: none !important;
+}
+#editTaskModal.consultant-status-mode .edit-status-only {
+    flex: 0 0 100%;
+    max-width: 100%;
+}
 /* Keep Select2 dropdown aligned with fields inside scrolling modal body */
 #editTaskModal .modal-body {
     position: relative;
