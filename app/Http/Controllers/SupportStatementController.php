@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class SupportStatementController extends Controller
 {
@@ -214,7 +215,7 @@ class SupportStatementController extends Controller
     }
     
     /**
-     * Generate printable support statement (opens in new tab)
+     * Generate support statement PDF download
      */
     public function generatePrint(Request $request)
     {
@@ -332,7 +333,7 @@ class SupportStatementController extends Controller
         $balanceCf = $projectHours - $utilizedUptoFromDate;
         $closingBalance = $balanceCf - $hoursUtilized;
 
-        return view('support-statement.print', [
+        $pdf = Pdf::loadView('support-statement.print', [
             'customer' => $customerData,
             'project' => $projectData,
             'balance_cf' => $balanceCf,
@@ -342,7 +343,10 @@ class SupportStatementController extends Controller
             'from_date' => $fromDate,
             'to_date' => $toDate,
             'show_consultant' => $showConsultant,
+            'pdf_mode' => true,
         ]);
+
+        return $pdf->download('supportstatement.pdf');
     }
     
     /**

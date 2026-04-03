@@ -91,7 +91,7 @@
                                         <div class="print-status" onclick="printStatement()" style="cursor:pointer;">
                                             <span>Print</span>
                                         </div>
-                                        <form id="printForm" method="POST" action="{{ route('support-statement.print') }}" target="_blank" style="display:none;">
+                                        <form id="printForm" method="POST" action="{{ route('support-statement.print') }}" style="display:none;">
                                             @csrf
                                             <input type="hidden" name="customer" id="printCustomer">
                                             <input type="hidden" name="project" id="printProject">

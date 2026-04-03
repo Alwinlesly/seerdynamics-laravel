@@ -26,15 +26,26 @@
     </style>
 </head>
 <body>
+    @php
+        $logoPath = public_path('assets/img/logo-360x103.png');
+        $logoDataUri = '';
+        if (file_exists($logoPath)) {
+            $logoDataUri = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
+        }
+    @endphp
+    @unless($pdf_mode ?? false)
     <div class="no-print print-btn-bar">
         <button onclick="window.print()">Print / Download PDF</button>
     </div>
+    @endunless
 
     <section style="padding: 10px 20px;">
         <table class="table table-sm" style="background-color: #fff; width: 100%;">
             <tr style="background-color: #fff;">
                 <td style="width:20%;">
-                    <img src="{{ asset('assets/img/logo-360x103.png') }}" style="margin-top: 20px; width: 100px;">
+                    @if($logoDataUri)
+                        <img src="{{ $logoDataUri }}" style="margin-top: 20px; width: 100px;">
+                    @endif
                 </td>
                 <td style="width:30%;">
                     <h3 style="margin-top: 20px; font-size: 18px; margin-left: 20px;">Support Statement</h3>
