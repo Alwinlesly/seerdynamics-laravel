@@ -27,7 +27,10 @@ class ProjectController extends Controller
         // Get filter options
         $data['customers'] = User::whereHas('groups', function($q) {
             $q->where('groups.id', 3);
-        })->get();
+        })
+        ->where('is_company', 1)
+        ->where('active', 1)
+        ->get();
         
         $data['consultants'] = User::whereHas('groups', function($q) {
             $q->where('groups.id', 2);
@@ -212,7 +215,10 @@ class ProjectController extends Controller
         // Data needed for the edit modal
         $data['customers'] = User::whereHas('groups', function($q) {
             $q->where('groups.id', 3);
-        })->get();
+        })
+        ->where('is_company', 1)
+        ->where('active', 1)
+        ->get();
         $data['project_statuses'] = \App\Models\ProjectStatus::all();
         $data['project_types'] = DB::table('project_type')->orderBy('id')->get();
         $data['consultants'] = User::whereHas('groups', function($q) {
