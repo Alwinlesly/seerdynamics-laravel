@@ -177,6 +177,45 @@
     background-color: #ece7fb;
     color: #2b2b2b;
 }
+
+/* Projects table: keep date + status readable and prevent overlap */
+#projectsTable {
+    table-layout: fixed;
+    width: 100%;
+}
+
+#projectsTable th:nth-child(4),
+#projectsTable td:nth-child(4),
+#projectsTable th:nth-child(5),
+#projectsTable td:nth-child(5) {
+    width: 95px;
+    white-space: nowrap;
+}
+
+#projectsTable th:nth-child(7),
+#projectsTable td:nth-child(7) {
+    width: 120px;
+    white-space: nowrap;
+}
+
+#projectsTable td:nth-child(7) .status {
+    white-space: nowrap;
+    display: inline-block;
+    min-width: 90px;
+    text-align: center;
+}
+
+#projectsTable td:nth-child(1),
+#projectsTable td:nth-child(2) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+@media (max-width: 1366px) {
+    #projectsTable {
+        min-width: 1080px;
+    }
+}
 </style>
 @endpush
 
