@@ -691,6 +691,7 @@ class TimesheetController extends Controller
 
         $tasks = Task::where('project_id', $projectId)
             ->select('id', 'title')
+            ->orderByDesc('id')
             ->get();
 
         return response()->json(['data' => $tasks]);
