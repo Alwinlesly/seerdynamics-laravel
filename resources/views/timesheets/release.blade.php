@@ -426,14 +426,25 @@
             loadTimesheets();
         });
 
-        // Search input with debounce (typing + clear button)
-        $('#searchInput').on('input search change', function() {
+        // Search input with debounce + robust clear handling
+        const handleSearchChange = function() {
+            const term = ($('#searchInput').val() || '').trim();
             clearTimeout(searchTimer);
+
+            // When cleared, reload immediately so full data appears again.
+            if (term === '') {
+                currentPage = 1;
+                loadTimesheets();
+                return;
+            }
+
             searchTimer = setTimeout(function() {
                 currentPage = 1;
                 loadTimesheets();
             }, 400);
-        });
+        };
+
+        $('#searchInput').on('input search change keyup', handleSearchChange);
 
         // Date filter change handlers (bootstrap-datepicker fires 'changeDate')
         $('#fromDateFilter, #toDateFilter').on('changeDate', function() {
