@@ -121,6 +121,7 @@ Route::middleware(['auth'])->group(function () {
         // Timesheet Release Routes
         Route::get('/release', [App\Http\Controllers\TimesheetReleaseController::class, 'index'])->name('timesheets.release');
         Route::get('/release/data', [App\Http\Controllers\TimesheetReleaseController::class, 'getData'])->name('timesheets.release.data');
+        Route::get('/release/export', [App\Http\Controllers\TimesheetReleaseController::class, 'export'])->name('timesheets.release.export');
         Route::post('/release/save', [App\Http\Controllers\TimesheetReleaseController::class, 'saveRelease'])->name('timesheets.release.save');
         Route::post('/release/projects', [App\Http\Controllers\TimesheetReleaseController::class, 'getProjectsByCustomer'])->name('timesheets.release.projects');
     });

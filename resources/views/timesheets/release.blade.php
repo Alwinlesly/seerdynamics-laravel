@@ -637,8 +637,18 @@
     }
 
     function downloadExcel() {
-        // Implement Excel export functionality
-        showToast('info', 'Excel export functionality to be implemented');
+        const params = new URLSearchParams({
+            user_id: $('#consultantFilter').val() || '',
+            customer: $('#customerFilter').val() || '',
+            projecttype: $('#projectTypeFilter').val() || '',
+            search: $('#searchInput').val() || '',
+            project: $('#projectFilter').val() || '',
+            status: $('#statusFilter').val() || '',
+            fromdate: $('#fromDateFilter').val() || '',
+            todate: $('#toDateFilter').val() || ''
+        });
+
+        window.location.href = `{{ route('timesheets.release.export') }}?${params.toString()}`;
     }
 </script>
 @endpush

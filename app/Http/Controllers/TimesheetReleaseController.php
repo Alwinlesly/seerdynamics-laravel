@@ -332,6 +332,92 @@ class TimesheetReleaseController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Export timesheet release data (CSV) using the same filters/logic as listing.
+     */
+    public function export(Request $request)
+    {
+        try {
+            $user = auth()->user();
+            if ($user->inGroup(3)) {
+                abort(403, 'Access Denied');
+            }
+
+            // Reuse listing logic with a high limit so export mirrors current filters.
+            $exportRequest = Request::create('/timesheet/release/data', 'GET', array_merge($request->all(), [
+                'offset' => 0,
+                'limit' => 100000,
+            ]));
+            $exportRequest->setUserResolver(fn () => $user);
+
+            $dataResponse = $this->getData($exportRequest);
+            $payload = $dataResponse->getData(true);
+
+            if (!empty($payload['error'])) {
+                return redirect()->back()->with('error', $payload['message'] ?? 'Unable to export data.');
+            }
+
+            $rows = $payload['rows'] ?? [];
+            $filename = 'timesheet_release_' . now()->format('Ymd_His') . '.csv';
+
+            return response()->streamDownload(function () use ($rows) {
+                $out = fopen('php://output', 'w');
+
+                // UTF-8 BOM for Excel compatibility
+                fwrite($out, "\xEF\xBB\xBF");
+
+                fputcsv($out, [
+                    'Timesheet',
+                    'Consultant',
+                    'Date',
+                    'Customer',
+                    'Project ID',
+                    'Project',
+                    'Ticket ID',
+                    'Ticket Name',
+                    'Ticket Status',
+                    'Total Hours',
+                    'Total Estimate',
+                    'Billable Hours',
+                    'Unbillable Hours',
+                    'Hours Released So Far',
+                    'Released Hours',
+                    'Release Status',
+                    'Note',
+                ]);
+
+                foreach ($rows as $row) {
+                    fputcsv($out, [
+                        $row['timesheet_id'] ?? '',
+                        $row['consultant'] ?? '',
+                        $row['date'] ?? '',
+                        $row['customer'] ?? '',
+                        $row['project_id'] ?? '',
+                        $row['project'] ?? '',
+                        $row['ticket_id'] ?? '',
+                        $row['ticket_name'] ?? '',
+                        $row['ticket_status'] ?? '',
+                        $row['total_hour'] ?? '',
+                        $row['total_estimate'] ?? '',
+                        $row['total_billable_hour'] ?? '',
+                        $row['total_nonbillable_hour'] ?? '',
+                        $row['total_hour_released_sofar'] ?? '',
+                        $row['released_hour'] ?? '',
+                        ((int) ($row['release_status'] ?? 0) === 1) ? 'Released' : 'Pending',
+                        $row['note'] ?? '',
+                    ]);
+                }
+
+                fclose($out);
+            }, $filename, [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Timesheet Release Export Error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Unable to export timesheet release data.');
+        }
+    }
     
     /**
      * Get projects by customer and type
