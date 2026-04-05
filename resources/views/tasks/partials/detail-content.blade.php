@@ -22,8 +22,9 @@
                     <span class="right-col">
                         @php
                             $issueType = $task->issueType ?? \App\Models\IssueType::find($task->issue_type);
+                            $issueTypeLabel = trim((string) (($issueType->issue_type ?? '') !== '' ? $issueType->issue_type : ($issueType->title ?? '')));
                         @endphp
-                        {{ $issueType ? $issueType->title : 'N/A' }}
+                        {{ $issueTypeLabel !== '' ? $issueTypeLabel : 'N/A' }}
                     </span>
                 </div>
             </div>
