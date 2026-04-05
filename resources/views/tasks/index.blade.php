@@ -876,19 +876,31 @@
 
     $(document).on('submit', '#estimateForm', function(e) {
         e.preventDefault();
-        const taskId = $(this).data('task-id');
-        const formData = $(this).serialize();
+        const $form = $(this);
+        const taskId = $form.data('task-id');
+        const formData = $form.serialize();
+        const $saveBtn = $('#estimateSaveBtn');
+
+        if ($saveBtn.prop('disabled')) {
+            return;
+        }
+
+        const originalBtnText = $saveBtn.text();
+        $saveBtn.prop('disabled', true).html(
+            '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Updating...'
+        );
 
         $.ajax({
             url: `/tasks/${taskId}/estimates`,
             method: 'POST',
+            timeout: 30000,
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             data: formData,
             success: function(response) {
                 if (!response.error) {
-                    showToast('success', response.message || 'Estimate created successfully');
+                    showToast('success', response.message || 'Estimate updated successfully');
                     $('#estimateFunc').val('0');
                     $('#estimateTech').val('0');
                     $('#estimateDays').val('0');
@@ -896,13 +908,19 @@
                     $('#estimateDaysText').text('0.0');
                     $('#estimateHoursText').text('0.00');
                     loadEstimates(taskId, true);
-                    loadTasks();
                 } else {
-                    showToast('error', response.message || 'Failed to create estimate');
+                    showToast('error', response.message || 'Failed to update estimate');
                 }
             },
             error: function(xhr) {
-                showToast('error', (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to create estimate');
+                if (xhr.statusText === 'timeout') {
+                    showToast('error', 'Request timed out. Please try again.');
+                } else {
+                    showToast('error', (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to update estimate');
+                }
+            },
+            complete: function() {
+                $saveBtn.prop('disabled', false).text(originalBtnText || 'Update');
             }
         });
     });

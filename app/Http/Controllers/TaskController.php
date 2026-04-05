@@ -1391,6 +1391,7 @@ class TaskController extends Controller
             $estimates = TaskEstimate::with(['user', 'approver'])
                 ->where('task_id', $id)
                 ->orderByDesc('created')
+                ->limit(1)
                 ->get()
                 ->map(function ($estimate) use ($user) {
                     $firstName = $estimate->user->first_name ?? '';
@@ -1473,7 +1474,12 @@ class TaskController extends Controller
             $hours = array_key_exists('estimate_hours', $validated) ? (float) $validated['estimate_hours'] : ($func + $tech);
             $days = array_key_exists('estimate_days', $validated) ? (float) $validated['estimate_days'] : ($hours / 8);
 
-            TaskEstimate::create([
+            // Single-entry behavior: keep only one active estimate record per task by updating latest entry.
+            $estimate = TaskEstimate::where('task_id', $task->id)
+                ->orderByDesc('id')
+                ->first();
+
+            $payload = [
                 'task_id' => $task->id,
                 'user_id' => $user->id,
                 'estimate_amount' => $hours,
@@ -1482,8 +1488,16 @@ class TaskController extends Controller
                 'estimate_days' => $days,
                 'estimate_hours' => $hours,
                 'estimate_status' => 0,
+                'estimate_approvedby' => null,
+                'estimate_approvedon' => null,
                 'created' => now(),
-            ]);
+            ];
+
+            if ($estimate) {
+                $estimate->update($payload);
+            } else {
+                TaskEstimate::create($payload);
+            }
 
             // Keep tasks.estimate in sync when legacy column exists.
             if (\Schema::hasColumn('tasks', 'estimate')) {
@@ -1491,20 +1505,23 @@ class TaskController extends Controller
                 $task->save();
             }
 
-            try {
-                EmailService::sendTicketEmail($task->id, 'ESTIMATE', [
-                    'estimate_func' => $func,
-                    'estimate_tech' => $tech,
-                    'estimate_days' => $days,
-                    'estimate_hours' => $hours,
-                ]);
-            } catch (\Exception $emailEx) {
-                \Log::error('Estimate email failed: ' . $emailEx->getMessage());
-            }
+            // Send estimate email after response so UI is not blocked by SMTP latency.
+            app()->terminating(function () use ($task, $func, $tech, $days, $hours) {
+                try {
+                    EmailService::sendTicketEmail($task->id, 'ESTIMATE', [
+                        'estimate_func' => $func,
+                        'estimate_tech' => $tech,
+                        'estimate_days' => $days,
+                        'estimate_hours' => $hours,
+                    ]);
+                } catch (\Exception $emailEx) {
+                    \Log::error('Estimate email failed: ' . $emailEx->getMessage());
+                }
+            });
 
             return response()->json([
                 'error' => false,
-                'message' => 'Estimate created successfully.',
+                'message' => 'Estimate updated successfully.',
             ]);
         } catch (ValidationException $e) {
             $message = collect($e->errors())->flatten()->first() ?: 'Validation failed';
