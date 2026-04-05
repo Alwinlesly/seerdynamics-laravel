@@ -188,8 +188,19 @@
 #projectsTable td:nth-child(4),
 #projectsTable th:nth-child(5),
 #projectsTable td:nth-child(5) {
-    width: 95px;
+    width: 110px;
     white-space: nowrap;
+}
+
+/* Create visual gap between From and To date columns */
+#projectsTable th:nth-child(4),
+#projectsTable td:nth-child(4) {
+    padding-right: 18px;
+}
+
+#projectsTable th:nth-child(5),
+#projectsTable td:nth-child(5) {
+    padding-left: 18px;
 }
 
 #projectsTable th:nth-child(7),
