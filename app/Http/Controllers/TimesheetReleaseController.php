@@ -72,17 +72,20 @@ class TimesheetReleaseController extends Controller
             }
             
             // Pagination parameters
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 10);
+            $offset = max(0, (int) $request->input('offset', 0));
+            $maxLimit = $request->boolean('export') ? 100000 : 100;
+            $limit = max(1, min($maxLimit, (int) $request->input('limit', 10)));
             $sort = $request->input('sort', 'id');
             $order = $request->input('order', 'DESC');
             $search = trim((string) $request->input('search', ''));
             
             // Validate sort column to prevent SQL injection
-            $allowedSorts = ['id', 'date', 'user_id'];
-            if (!in_array($sort, $allowedSorts)) {
-                $sort = 'id';
-            }
+            $allowedSorts = [
+                'id' => 'wh.id',
+                'date' => 'wh.date',
+                'user_id' => 't.user_id',
+            ];
+            $sortColumn = $allowedSorts[$sort] ?? $allowedSorts['id'];
             $order = strtoupper($order) === 'ASC' ? 'ASC' : 'DESC';
             
             // Build base query
@@ -94,7 +97,6 @@ class TimesheetReleaseController extends Controller
                 ->join('task_status as tst', 'ts.status', '=', 'tst.id')
                 ->join('users as uc', 'uc.id', '=', 't.user_id')
                 ->join('users as cust', 'cust.id', '=', 'wp.customer_id')
-                ->leftJoin('users as u', 'u.id', '=', 'p.manager_id')
                 ->where('t.status', 1)
                 ->where('t.submit_or_draft', 'submit')
                 ->where('wp.status', 1)
@@ -122,12 +124,12 @@ class TimesheetReleaseController extends Controller
             
             if ($request->filled('fromdate')) {
                 $fromDate = date('Y-m-d', strtotime($request->fromdate));
-                $query->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') >= ?", [$fromDate]);
+                $query->where('wh.date', '>=', $fromDate);
             }
             
             if ($request->filled('todate')) {
                 $toDate = date('Y-m-d', strtotime($request->todate));
-                $query->whereRaw("DATE_FORMAT(wh.date,'%Y-%m-%d') <= ?", [$toDate]);
+                $query->where('wh.date', '<=', $toDate);
             }
             
             if ($request->filled('projecttype')) {
@@ -152,8 +154,8 @@ class TimesheetReleaseController extends Controller
                 });
             }
             
-            // Get total count
-            $total = (clone $query)->count();
+            // Keep count aligned with listing/export query so totals always match.
+            $total = (clone $query)->distinct('wh.id')->count('wh.id');
             
             // Get paginated results with subqueries to avoid N+1
             $results = $query->select(
@@ -175,7 +177,8 @@ class TimesheetReleaseController extends Controller
                     'uc.first_name as consultant_name',
                     'cust.company as customer_name'
                 )
-                ->orderBy("t.{$sort}", $order)
+                ->orderBy($sortColumn, $order)
+                ->orderBy('wh.id', $order)
                 ->skip($offset)
                 ->take($limit)
                 ->get();
@@ -348,6 +351,7 @@ class TimesheetReleaseController extends Controller
             $exportRequest = Request::create('/timesheet/release/data', 'GET', array_merge($request->all(), [
                 'offset' => 0,
                 'limit' => 100000,
+                'export' => 1,
             ]));
             $exportRequest->setUserResolver(fn () => $user);
 

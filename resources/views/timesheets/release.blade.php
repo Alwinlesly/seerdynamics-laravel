@@ -402,6 +402,8 @@
     let itemsPerPage = 10;
     let totalRecords = 0;
     let searchTimer = null;
+    let activeTimesheetRequest = null;
+    let latestRequestToken = 0;
 
     $(document).ready(function() {
         // Make form-select have value class
@@ -480,11 +482,22 @@
     });
 
     function loadTimesheets() {
+        const requestToken = ++latestRequestToken;
         const offset = (currentPage - 1) * itemsPerPage;
+        const tbody = $('#timesheetTableBody');
 
-        $.ajax({
+        // Cancel older in-flight request so stale data cannot overwrite new page/filter data.
+        if (activeTimesheetRequest) {
+            activeTimesheetRequest.abort();
+        }
+
+        tbody.html('<tr><td colspan="11" class="text-center">Loading...</td></tr>');
+        $('#prevPage, #nextPage').prop('disabled', true);
+
+        activeTimesheetRequest = $.ajax({
             url: '{{ route("timesheets.release.data") }}',
             type: 'GET',
+            cache: false,
             data: {
                 offset: offset,
                 limit: itemsPerPage,
@@ -500,13 +513,21 @@
                 todate: $('#toDateFilter').val()
             },
             success: function(response) {
+                if (requestToken !== latestRequestToken) return;
                 totalRecords = response.total;
                 renderTimesheets(response.rows);
                 updatePagination();
             },
             error: function(xhr) {
+                if (xhr.statusText === 'abort') return;
+                if (requestToken !== latestRequestToken) return;
                 console.error('Error loading timesheets:', xhr);
                 $('#timesheetTableBody').html('<tr><td colspan="11" class="text-center text-danger">Error loading data</td></tr>');
+            },
+            complete: function() {
+                if (requestToken === latestRequestToken) {
+                    activeTimesheetRequest = null;
+                }
             }
         });
     }
