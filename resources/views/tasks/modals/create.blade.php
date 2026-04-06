@@ -83,7 +83,10 @@
                                 @else
                                     <option value="">Select status</option>
                                     @foreach($task_statuses as $status)
-                                        <option value="{{ $status->title }}">{{ $status->title }}</option>
+                                        @php
+                                            $isTodo = strtolower(preg_replace('/[\s_-]+/', '', $status->title)) === 'todo';
+                                        @endphp
+                                        <option value="{{ $status->title }}" {{ $isTodo ? 'selected' : '' }}>{{ $status->title }}</option>
                                     @endforeach
                                 @endif
                             </select>
@@ -334,21 +337,17 @@
         $service.trigger('change.select2');
     }
 
-    const isCreateTaskCustomerAdmin = @json(auth()->user()->inGroup(3));
-
     function setCreateTaskDefaults() {
         const today = new Date().toISOString().split('T')[0];
         $('#issue_date').val(today);
 
-        if (isCreateTaskCustomerAdmin) {
-            const $status = $('#status');
-            const todoOption = $status.find('option').filter(function() {
-                return ($(this).val() || '').toLowerCase().replace(/[\s_-]/g, '') === 'todo';
-            }).first();
+        const $status = $('#status');
+        const todoOption = $status.find('option').filter(function() {
+            return ($(this).val() || '').toLowerCase().replace(/[\s_-]/g, '') === 'todo';
+        }).first();
 
-            if (todoOption.length) {
-                $status.val(todoOption.val());
-            }
+        if (todoOption.length) {
+            $status.val(todoOption.val()).trigger('change.select2');
         }
     }
 
@@ -375,6 +374,7 @@
             }
             initCreateTaskSearchSelects();
             filterCreateServicesByProject();
+            setCreateTaskDefaults();
         });
 
         filterCreateServicesByProject();

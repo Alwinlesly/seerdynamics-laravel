@@ -604,15 +604,17 @@ class TaskController extends Controller
         ]);
         
         try {
-            // For customer admin, force status to To Do; others use submitted status
+            $todoStatus = TaskStatus::all()->first(function ($statusItem) {
+                return strtolower(preg_replace('/[\s_-]+/', '', $statusItem->title)) === 'todo';
+            });
+            $todoStatusId = $todoStatus ? (int) $todoStatus->id : 1;
+
+            // For customer admin, force status to To Do; others use submitted status.
             if (auth()->user()->inGroup(3)) {
-                $todoStatus = TaskStatus::all()->first(function ($statusItem) {
-                    return strtolower(preg_replace('/[\s_-]+/', '', $statusItem->title)) === 'todo';
-                });
-                $validated['status'] = $todoStatus ? $todoStatus->id : 1;
+                $validated['status'] = $todoStatusId;
             } else {
                 $status = TaskStatus::where('title', $request->status)->first();
-                $validated['status'] = $status ? $status->id : 1;
+                $validated['status'] = $status ? (int) $status->id : $todoStatusId;
             }
             
             // Get priority ID from request or use default
