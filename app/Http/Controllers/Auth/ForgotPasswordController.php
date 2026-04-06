@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 class ForgotPasswordController extends Controller
 {
     public function sendResetLink(Request $request)
@@ -41,20 +42,32 @@ class ForgotPasswordController extends Controller
         // Send email
         $resetLink = url('auth/reset-password/' . $code);
         
-        Mail::send([], [], function ($message) use ($user, $resetLink) {
-            $message->to($user->email)
-                ->subject('Password Reset - ' . company_name())
-                ->html("
-                    <html>
-                    <body>
-                        <p>You requested a password reset for " . company_name() . ".</p>
-                        <p><a href='{$resetLink}'>Click here to reset your password</a></p>
-                        <p>Or copy this link: {$resetLink}</p>
-                        <p>This link will expire in 30 minutes.</p>
-                    </body>
-                    </html>
-                ");
-        });
+        try {
+            Mail::send([], [], function ($message) use ($user, $resetLink) {
+                $message->to($user->email)
+                    ->subject('Password Reset - ' . company_name())
+                    ->html("
+                        <html>
+                        <body>
+                            <p>You requested a password reset for " . company_name() . ".</p>
+                            <p><a href='{$resetLink}'>Click here to reset your password</a></p>
+                            <p>Or copy this link: {$resetLink}</p>
+                            <p>This link will expire in 30 minutes.</p>
+                        </body>
+                        </html>
+                    ");
+            });
+        } catch (TransportExceptionInterface $e) {
+            \Log::error('Forgot password mail transport failed: ' . $e->getMessage(), [
+                'email' => $user->email,
+            ]);
+
+            return response()->json([
+                'error' => true,
+                'data' => '',
+                'message' => 'Unable to send reset email right now. Please try again shortly.',
+            ], 503);
+        }
         return response()->json([
             'error' => false,
             'data' => '',
