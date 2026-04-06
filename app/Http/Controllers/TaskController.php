@@ -609,8 +609,8 @@ class TaskController extends Controller
             });
             $todoStatusId = $todoStatus ? (int) $todoStatus->id : 1;
 
-            // For customer admin, force status to To Do; others use submitted status.
-            if (auth()->user()->inGroup(3)) {
+            // For customer-side users, force status to To Do; others use submitted status.
+            if (auth()->user()->inGroup(3) || auth()->user()->inGroup(4)) {
                 $validated['status'] = $todoStatusId;
             } else {
                 $status = TaskStatus::where('title', $request->status)->first();

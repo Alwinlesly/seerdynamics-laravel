@@ -78,7 +78,7 @@
                                         return strtolower(preg_replace('/[\s_-]+/', '', $statusItem->title)) === 'todo';
                                     });
                                 @endphp
-                                @if(auth()->user()->inGroup(3) && $todoStatus)
+                                @if((auth()->user()->inGroup(3) || auth()->user()->inGroup(4)) && $todoStatus)
                                     <option value="{{ $todoStatus->title }}" selected>{{ $todoStatus->title }}</option>
                                 @else
                                     <option value="">Select status</option>
